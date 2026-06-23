@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:18.4-alpine
+    container_name: cicdpostgres
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: cicd
+    ports:
+      - "5432:5432"
+  redis:
+    image: redis:8.8.0-alpine
+    container_name: cicdredis
+    ports:
+      - "6379:6379"
