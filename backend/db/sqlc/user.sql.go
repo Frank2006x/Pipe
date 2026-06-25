@@ -43,6 +43,50 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
+const getUserByGithubID = `-- name: GetUserByGithubID :one
+SELECT id, github_id, username, email, avatar_url, created_at, updated_at
+FROM users
+WHERE github_id = $1
+LIMIT 1
+`
+
+func (q *Queries) GetUserByGithubID(ctx context.Context, githubID int64) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByGithubID, githubID)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.GithubID,
+		&i.Username,
+		&i.Email,
+		&i.AvatarUrl,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserByID = `-- name: GetUserByID :one
+SELECT id, github_id, username, email, avatar_url, created_at, updated_at
+FROM users
+WHERE id = $1
+LIMIT 1
+`
+
+func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByID, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.GithubID,
+		&i.Username,
+		&i.Email,
+		&i.AvatarUrl,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const updateUser = `-- name: UpdateUser :one
 UPDATE users SET username = $2, email = $3, avatar_url = $4, updated_at = NOW()
 WHERE github_id = $1 RETURNING id, github_id, username, email, avatar_url, created_at, updated_at

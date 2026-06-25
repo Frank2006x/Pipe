@@ -9,18 +9,18 @@ import (
 	"context"
 )
 
-const createToken = `-- name: CreateToken :one
+const createGithubToken = `-- name: CreateGithubToken :one
 INSERT INTO github_tokens (user_id, access_token)
 VALUES ($1, $2) RETURNING user_id, access_token, created_at, updated_at
 `
 
-type CreateTokenParams struct {
+type CreateGithubTokenParams struct {
 	UserID      int64  `json:"user_id"`
 	AccessToken string `json:"access_token"`
 }
 
-func (q *Queries) CreateToken(ctx context.Context, arg CreateTokenParams) (GithubToken, error) {
-	row := q.db.QueryRow(ctx, createToken, arg.UserID, arg.AccessToken)
+func (q *Queries) CreateGithubToken(ctx context.Context, arg CreateGithubTokenParams) (GithubToken, error) {
+	row := q.db.QueryRow(ctx, createGithubToken, arg.UserID, arg.AccessToken)
 	var i GithubToken
 	err := row.Scan(
 		&i.UserID,
@@ -31,18 +31,37 @@ func (q *Queries) CreateToken(ctx context.Context, arg CreateTokenParams) (Githu
 	return i, err
 }
 
-const updateToken = `-- name: UpdateToken :one
+const getGithubToken = `-- name: GetGithubToken :one
+SELECT user_id, access_token, created_at, updated_at
+FROM github_tokens
+WHERE user_id = $1
+LIMIT 1
+`
+
+func (q *Queries) GetGithubToken(ctx context.Context, userID int64) (GithubToken, error) {
+	row := q.db.QueryRow(ctx, getGithubToken, userID)
+	var i GithubToken
+	err := row.Scan(
+		&i.UserID,
+		&i.AccessToken,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updateGithubToken = `-- name: UpdateGithubToken :one
 UPDATE github_tokens SET access_token = $2, updated_at = NOW()
 WHERE user_id = $1 RETURNING user_id, access_token, created_at, updated_at
 `
 
-type UpdateTokenParams struct {
+type UpdateGithubTokenParams struct {
 	UserID      int64  `json:"user_id"`
 	AccessToken string `json:"access_token"`
 }
 
-func (q *Queries) UpdateToken(ctx context.Context, arg UpdateTokenParams) (GithubToken, error) {
-	row := q.db.QueryRow(ctx, updateToken, arg.UserID, arg.AccessToken)
+func (q *Queries) UpdateGithubToken(ctx context.Context, arg UpdateGithubTokenParams) (GithubToken, error) {
+	row := q.db.QueryRow(ctx, updateGithubToken, arg.UserID, arg.AccessToken)
 	var i GithubToken
 	err := row.Scan(
 		&i.UserID,

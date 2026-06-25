@@ -23,7 +23,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	queries := sqlc.NewQueries(db)
+	queries := sqlc.New(db)
 	router.RepositoryRouter(app, queries)
 	app.Listen(":8080")
 
