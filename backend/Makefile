@@ -1,13 +1,16 @@
+POSTGRES_DB=postgres://root:secret@localhost:5432/cicd?sslmode=disable
 .PHONY: server ,migrateup
 server:
 	go run cmd/api/main.go
 
-migrateup:
-	migrate -path migrations \
-	-database "postgres://root:secret@localhost:5432/cicd?sslmode=disable" \
-	up
+migrate-up:
+	migrate -path db/migrations -database "$(POSTGRES_DB)" up
 
-migratedown:
-	migrate -path migrations \
-	-database "postgres://root:secret@localhost:5432/cicd?sslmode=disable" \
-	down
+migrate-down:
+	migrate -path db/migrations -database "$(POSTGRES_DB)" down 1
+
+migrate-version:
+	migrate -path db/migrations -database "$(POSTGRES_DB)" version
+
+migrate-force:
+	migrate -path db/migrations -database "$(POSTGRES_DB)" force 1
