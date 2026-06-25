@@ -3,7 +3,7 @@ package config
 import "github.com/spf13/viper"
 
 type Config struct {
-	DatabaseURL string `mapstructure:"POSTGRES_DB"`
+	POSTGRES_DB string `mapstructure:"POSTGRES_DB"`
 }
 
 func LoadConfig(path string) (Config, error) {
