@@ -5,41 +5,205 @@
 package sqlc
 
 import (
+	"database/sql/driver"
+	"fmt"
+
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type GithubEvent string
+
+const (
+	GithubEventPush             GithubEvent = "push"
+	GithubEventPullRequest      GithubEvent = "pull_request"
+	GithubEventWorkflowDispatch GithubEvent = "workflow_dispatch"
+	GithubEventRelease          GithubEvent = "release"
+	GithubEventTag              GithubEvent = "tag"
+)
+
+func (e *GithubEvent) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = GithubEvent(s)
+	case string:
+		*e = GithubEvent(s)
+	default:
+		return fmt.Errorf("unsupported scan type for GithubEvent: %T", src)
+	}
+	return nil
+}
+
+type NullGithubEvent struct {
+	GithubEvent GithubEvent `json:"github_event"`
+	Valid       bool        `json:"valid"` // Valid is true if GithubEvent is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullGithubEvent) Scan(value interface{}) error {
+	if value == nil {
+		ns.GithubEvent, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.GithubEvent.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullGithubEvent) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.GithubEvent), nil
+}
+
+type JobStatus string
+
+const (
+	JobStatusPending   JobStatus = "pending"
+	JobStatusRunning   JobStatus = "running"
+	JobStatusSuccess   JobStatus = "success"
+	JobStatusFailed    JobStatus = "failed"
+	JobStatusCancelled JobStatus = "cancelled"
+)
+
+func (e *JobStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = JobStatus(s)
+	case string:
+		*e = JobStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for JobStatus: %T", src)
+	}
+	return nil
+}
+
+type NullJobStatus struct {
+	JobStatus JobStatus `json:"job_status"`
+	Valid     bool      `json:"valid"` // Valid is true if JobStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullJobStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.JobStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.JobStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullJobStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.JobStatus), nil
+}
+
+type PipelineStatus string
+
+const (
+	PipelineStatusPending   PipelineStatus = "pending"
+	PipelineStatusRunning   PipelineStatus = "running"
+	PipelineStatusSuccess   PipelineStatus = "success"
+	PipelineStatusFailed    PipelineStatus = "failed"
+	PipelineStatusCancelled PipelineStatus = "cancelled"
+)
+
+func (e *PipelineStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PipelineStatus(s)
+	case string:
+		*e = PipelineStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PipelineStatus: %T", src)
+	}
+	return nil
+}
+
+type NullPipelineStatus struct {
+	PipelineStatus PipelineStatus `json:"pipeline_status"`
+	Valid          bool           `json:"valid"` // Valid is true if PipelineStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPipelineStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.PipelineStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PipelineStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPipelineStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PipelineStatus), nil
+}
+
+type GithubToken struct {
+	UserID      int64              `json:"user_id"`
+	AccessToken string             `json:"access_token"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+}
+
 type Job struct {
-	ID          int64            `json:"id"`
-	PipelineID  int64            `json:"pipeline_id"`
-	Name        string           `json:"name"`
-	Status      string           `json:"status"`
-	StartedAt   pgtype.Timestamp `json:"started_at"`
-	CompletedAt pgtype.Timestamp `json:"completed_at"`
+	ID          int64              `json:"id"`
+	PipelineID  int64              `json:"pipeline_id"`
+	Name        string             `json:"name"`
+	Status      JobStatus          `json:"status"`
+	StartedAt   pgtype.Timestamptz `json:"started_at"`
+	CompletedAt pgtype.Timestamptz `json:"completed_at"`
 }
 
 type Log struct {
-	ID        int64            `json:"id"`
-	JobID     int64            `json:"job_id"`
-	Content   pgtype.Text      `json:"content"`
-	CreatedAt pgtype.Timestamp `json:"created_at"`
+	ID         int64              `json:"id"`
+	JobID      int64              `json:"job_id"`
+	LineNumber int32              `json:"line_number"`
+	Content    string             `json:"content"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
 }
 
 type Pipeline struct {
-	ID           int64            `json:"id"`
-	RepositoryID int64            `json:"repository_id"`
-	CommitSha    pgtype.Text      `json:"commit_sha"`
-	Branch       pgtype.Text      `json:"branch"`
-	Status       string           `json:"status"`
-	TriggerType  pgtype.Text      `json:"trigger_type"`
-	CreatedAt    pgtype.Timestamp `json:"created_at"`
-	StartedAt    pgtype.Timestamp `json:"started_at"`
-	CompletedAt  pgtype.Timestamp `json:"completed_at"`
+	ID            int64              `json:"id"`
+	RepositoryID  int64              `json:"repository_id"`
+	CommitSha     string             `json:"commit_sha"`
+	CommitMessage pgtype.Text        `json:"commit_message"`
+	Branch        string             `json:"branch"`
+	EventType     GithubEvent        `json:"event_type"`
+	Status        PipelineStatus     `json:"status"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	StartedAt     pgtype.Timestamptz `json:"started_at"`
+	CompletedAt   pgtype.Timestamptz `json:"completed_at"`
 }
 
 type Repository struct {
-	ID            int64            `json:"id"`
-	Name          string           `json:"name"`
-	GithubUrl     string           `json:"github_url"`
-	DefaultBranch pgtype.Text      `json:"default_branch"`
-	CreatedAt     pgtype.Timestamp `json:"created_at"`
+	ID            int64              `json:"id"`
+	OwnerID       int64              `json:"owner_id"`
+	GithubRepoID  int64              `json:"github_repo_id"`
+	Name          string             `json:"name"`
+	FullName      string             `json:"full_name"`
+	GithubUrl     string             `json:"github_url"`
+	DefaultBranch string             `json:"default_branch"`
+	Private       bool               `json:"private"`
+	WebhookID     pgtype.Int8        `json:"webhook_id"`
+	WebhookActive bool               `json:"webhook_active"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+}
+
+type User struct {
+	ID        int64              `json:"id"`
+	GithubID  int64              `json:"github_id"`
+	Username  string             `json:"username"`
+	Email     string             `json:"email"`
+	AvatarUrl pgtype.Text        `json:"avatar_url"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 }

@@ -7,19 +7,17 @@ package sqlc
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createRepository = `-- name: CreateRepository :one
 INSERT INTO repositories (name, github_url, default_branch)
-VALUES ($1, $2, $3) RETURNING id, name, github_url, default_branch, created_at
+VALUES ($1, $2, $3) RETURNING id, owner_id, github_repo_id, name, full_name, github_url, default_branch, private, webhook_id, webhook_active, created_at, updated_at
 `
 
 type CreateRepositoryParams struct {
-	Name          string      `json:"name"`
-	GithubUrl     string      `json:"github_url"`
-	DefaultBranch pgtype.Text `json:"default_branch"`
+	Name          string `json:"name"`
+	GithubUrl     string `json:"github_url"`
+	DefaultBranch string `json:"default_branch"`
 }
 
 func (q *Queries) CreateRepository(ctx context.Context, arg CreateRepositoryParams) (Repository, error) {
@@ -27,10 +25,17 @@ func (q *Queries) CreateRepository(ctx context.Context, arg CreateRepositoryPara
 	var i Repository
 	err := row.Scan(
 		&i.ID,
+		&i.OwnerID,
+		&i.GithubRepoID,
 		&i.Name,
+		&i.FullName,
 		&i.GithubUrl,
 		&i.DefaultBranch,
+		&i.Private,
+		&i.WebhookID,
+		&i.WebhookActive,
 		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -45,7 +50,7 @@ func (q *Queries) DeleteRepository(ctx context.Context, id int64) error {
 }
 
 const findByGithubUrl = `-- name: FindByGithubUrl :one
-SELECT id, name, github_url, default_branch, created_at FROM repositories 
+SELECT id, owner_id, github_repo_id, name, full_name, github_url, default_branch, private, webhook_id, webhook_active, created_at, updated_at FROM repositories 
 WHERE github_url = $1
 `
 
@@ -54,16 +59,23 @@ func (q *Queries) FindByGithubUrl(ctx context.Context, githubUrl string) (Reposi
 	var i Repository
 	err := row.Scan(
 		&i.ID,
+		&i.OwnerID,
+		&i.GithubRepoID,
 		&i.Name,
+		&i.FullName,
 		&i.GithubUrl,
 		&i.DefaultBranch,
+		&i.Private,
+		&i.WebhookID,
+		&i.WebhookActive,
 		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const getRepository = `-- name: GetRepository :one
-SELECT id, name, github_url, default_branch, created_at FROM repositories 
+SELECT id, owner_id, github_repo_id, name, full_name, github_url, default_branch, private, webhook_id, webhook_active, created_at, updated_at FROM repositories 
 WHERE name = $1
 `
 
@@ -72,16 +84,23 @@ func (q *Queries) GetRepository(ctx context.Context, name string) (Repository, e
 	var i Repository
 	err := row.Scan(
 		&i.ID,
+		&i.OwnerID,
+		&i.GithubRepoID,
 		&i.Name,
+		&i.FullName,
 		&i.GithubUrl,
 		&i.DefaultBranch,
+		&i.Private,
+		&i.WebhookID,
+		&i.WebhookActive,
 		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const listRepositories = `-- name: ListRepositories :many
-SELECT id, name, github_url, default_branch, created_at FROM repositories 
+SELECT id, owner_id, github_repo_id, name, full_name, github_url, default_branch, private, webhook_id, webhook_active, created_at, updated_at FROM repositories 
 ORDER BY created_at DESC
 `
 
@@ -96,10 +115,17 @@ func (q *Queries) ListRepositories(ctx context.Context) ([]Repository, error) {
 		var i Repository
 		if err := rows.Scan(
 			&i.ID,
+			&i.OwnerID,
+			&i.GithubRepoID,
 			&i.Name,
+			&i.FullName,
 			&i.GithubUrl,
 			&i.DefaultBranch,
+			&i.Private,
+			&i.WebhookID,
+			&i.WebhookActive,
 			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}

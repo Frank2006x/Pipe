@@ -10,10 +10,14 @@ import (
 
 type Querier interface {
 	CreateRepository(ctx context.Context, arg CreateRepositoryParams) (Repository, error)
+	CreateToken(ctx context.Context, arg CreateTokenParams) (GithubToken, error)
+	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteRepository(ctx context.Context, id int64) error
 	FindByGithubUrl(ctx context.Context, githubUrl string) (Repository, error)
 	GetRepository(ctx context.Context, name string) (Repository, error)
 	ListRepositories(ctx context.Context) ([]Repository, error)
+	UpdateToken(ctx context.Context, arg UpdateTokenParams) (GithubToken, error)
+	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 }
 
 var _ Querier = (*Queries)(nil)
