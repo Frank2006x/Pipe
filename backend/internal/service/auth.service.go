@@ -135,3 +135,21 @@ func (s *AuthService) Callback(ctx context.Context, code string) (string, error)
 
 	return jwtToken, nil
 }
+
+func (s *AuthService) GetUserInfo(ctx context.Context, userID int64) (sqlc.User, error) {
+	user, err := s.queries.GetUserByID(ctx, userID)
+
+	if err != nil {
+		return sqlc.User{}, err
+	}
+	return user, nil
+}
+
+func (s *AuthService) GetAuthURL(state string) (string, error) {
+	authURL, err := s.githubClient.GetAuthURL(state)
+
+	if err != nil {
+		return "", err
+	}
+	return authURL, nil
+}

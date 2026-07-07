@@ -1,8 +1,71 @@
 package handler
 
+import (
+	"Frank2006x/Pipe/internal/service"
+	"Frank2006x/Pipe/internal/util/random"
 
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/log"
+)
 
 type AuthHandler struct {
+	AuthService *service.AuthService
+}
 
+func NewAuthHandler(authService *service.AuthService) *AuthHandler {
+	return &AuthHandler{
+		AuthService: authService,
+	}
+}
 
+func (h *AuthHandler) GetRedirctLink(c fiber.Ctx) error {
+
+	state := random.GenerateRandomState()
+
+	authURL, err := h.AuthService.GetAuthURL(state)
+	if err != nil {
+		log.Infof("Failed to get GitHub auth URL: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to get GitHub auth URL")
+	}
+	// TODO:
+	// Save state somewhere (cookie or redis)
+
+	return c.Redirect().To(authURL)
+}
+
+func (h *AuthHandler) Callback(c fiber.Ctx) error {
+	code := c.Query("code")
+	if code == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "Missing code parameter")
+	}
+
+	token, err := h.AuthService.Callback(c.Context(), code)
+	if err != nil {
+		log.Infof("Failed to handle callback: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to handle callback")
+	}
+	c.Cookie(&fiber.Cookie{
+		Name:     "access_token",
+		Value:    token,
+		HTTPOnly: true,
+		Secure:   false, // true in production
+		SameSite: "Lax",
+		Path:     "/",
+		MaxAge:   60 * 60 * 24 * 3,
+	})
+	return c.JSON(fiber.Map{
+		"token": token,
+	})
+}
+
+func (h *AuthHandler) GetUserInfo(c fiber.Ctx) error {
+	userID := c.Locals("user_id").(int64)
+
+	user, err := h.AuthService.GetUserInfo(c.Context(), userID)
+	if err != nil {
+		log.Infof("Failed to get user info: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to get user info")
+	}
+
+	return c.JSON(user)
 }
