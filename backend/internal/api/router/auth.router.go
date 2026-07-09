@@ -3,6 +3,7 @@ package router
 import (
 	"Frank2006x/Pipe/db/sqlc"
 	"Frank2006x/Pipe/internal/api/handler"
+	"Frank2006x/Pipe/internal/api/middleware"
 	"Frank2006x/Pipe/internal/auth"
 	"Frank2006x/Pipe/internal/config"
 	"Frank2006x/Pipe/internal/github"
@@ -21,5 +22,5 @@ func AuthRouter(router *fiber.App, queries *sqlc.Queries, config config.Config) 
 
 	authGroup.Get("/github", authHandler.GetRedirctLink)
 	authGroup.Get("/github/callback", authHandler.Callback)
-	authGroup.Get("/me", authHandler.GetUserInfo)
+	authGroup.Get("/me", middleware.AuthMiddleware(jwtMaker), authHandler.GetUserInfo)
 }

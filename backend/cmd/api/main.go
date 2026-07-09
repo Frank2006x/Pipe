@@ -25,6 +25,7 @@ func main() {
 	}
 	queries := sqlc.New(db)
 	router.RepositoryRouter(app, queries)
+	router.AuthRouter(app,queries,config)
 	app.Listen(":8080")
 
 }

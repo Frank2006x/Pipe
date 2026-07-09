@@ -24,28 +24,39 @@ type Claims struct {
 }
 
 func (jm *JwtMaker) GenerateJWT(userID int64) (string, error) {
-	claims := Claims{
+	claims := &Claims{
 		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 72)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(72 * time.Hour)),
 		},
 	}
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
 	return token.SignedString([]byte(jm.secret))
 }
 
 func (jm *JwtMaker) ValidateJWT(tokenString string) (*Claims, error) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method")
-		}
-		return []byte(jm.secret), nil
-	})
+	claims := &Claims{}
+
+	token, err := jwt.ParseWithClaims(
+		tokenString,
+		claims,
+		func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method")
+			}
+			return []byte(jm.secret), nil
+		},
+	)
+
 	if err != nil {
 		return nil, err
 	}
-	if claims, ok := token.Claims.(*Claims); ok {
-		return claims, nil
+
+	if !token.Valid {
+		return nil, fmt.Errorf("invalid token")
 	}
-	return nil, fmt.Errorf("invalid token")
+
+	return claims, nil
 }
