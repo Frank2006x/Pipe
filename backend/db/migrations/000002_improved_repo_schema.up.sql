@@ -28,4 +28,10 @@ ALTER TABLE repositories
     ADD CONSTRAINT repositories_user_id_github_repo_id_key UNIQUE (user_id, github_repo_id);
 
 DROP INDEX IF EXISTS idx_repositories_owner;
-CREATE INDEX idx_repositories_user ON repositories(user_id);
+CREATE INDEX idx_repositories_user 
+ON repositories(user_id);
+CREATE INDEX idx_repositories_github_repo_id
+ON repositories(github_repo_id);
+
+CREATE INDEX idx_repositories_full_name
+ON repositories(full_name);

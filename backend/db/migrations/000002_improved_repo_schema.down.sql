@@ -27,4 +27,6 @@ ALTER TABLE repositories
     RENAME COLUMN is_active TO webhook_active;
 
 DROP INDEX IF EXISTS idx_repositories_user;
+DROP INDEX IF EXISTS idx_repositories_github_repo_id;
+DROP INDEX IF EXISTS idx_repositories_full_name;
 CREATE INDEX idx_repositories_owner ON repositories(owner_id);
