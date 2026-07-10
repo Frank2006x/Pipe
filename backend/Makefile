@@ -14,3 +14,6 @@ migrate-version:
 
 migrate-force:
 	migrate -path db/migrations -database "$(POSTGRES_DB)" force 1
+
+sqlc:
+	sqlc generate

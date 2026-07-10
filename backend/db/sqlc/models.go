@@ -185,17 +185,21 @@ type Pipeline struct {
 
 type Repository struct {
 	ID            int64              `json:"id"`
-	OwnerID       int64              `json:"owner_id"`
+	UserID        int64              `json:"user_id"`
 	GithubRepoID  int64              `json:"github_repo_id"`
 	Name          string             `json:"name"`
 	FullName      string             `json:"full_name"`
-	GithubUrl     string             `json:"github_url"`
+	HtmlUrl       string             `json:"html_url"`
 	DefaultBranch string             `json:"default_branch"`
 	Private       bool               `json:"private"`
 	WebhookID     pgtype.Int8        `json:"webhook_id"`
-	WebhookActive bool               `json:"webhook_active"`
+	IsActive      bool               `json:"is_active"`
 	CreatedAt     pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+	Owner         string             `json:"owner"`
+	Description   pgtype.Text        `json:"description"`
+	CloneUrl      string             `json:"clone_url"`
+	WebhookSecret pgtype.Text        `json:"webhook_secret"`
 }
 
 type User struct {

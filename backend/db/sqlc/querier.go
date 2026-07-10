@@ -6,6 +6,8 @@ package sqlc
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
@@ -13,14 +15,20 @@ type Querier interface {
 	CreateRepository(ctx context.Context, arg CreateRepositoryParams) (Repository, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteRepository(ctx context.Context, id int64) error
-	FindByGithubUrl(ctx context.Context, githubUrl string) (Repository, error)
+	ExistsRepository(ctx context.Context, arg ExistsRepositoryParams) (bool, error)
 	GetGithubToken(ctx context.Context, userID int64) (GithubToken, error)
-	GetRepository(ctx context.Context, name string) (Repository, error)
+	GetRepositoryByFullName(ctx context.Context, fullName string) (Repository, error)
+	GetRepositoryByGithubRepoID(ctx context.Context, githubRepoID int64) (Repository, error)
+	GetRepositoryById(ctx context.Context, id int64) (Repository, error)
+	GetRepositoryByWebhookId(ctx context.Context, webhookID pgtype.Int8) (Repository, error)
 	GetUserByGithubID(ctx context.Context, githubID int64) (User, error)
 	GetUserByID(ctx context.Context, id int64) (User, error)
-	ListRepositories(ctx context.Context) ([]Repository, error)
+	ListRepositoriesByUser(ctx context.Context, userID int64) ([]Repository, error)
+	SetRepositoryActive(ctx context.Context, arg SetRepositoryActiveParams) (Repository, error)
 	UpdateGithubToken(ctx context.Context, arg UpdateGithubTokenParams) (GithubToken, error)
+	UpdateRepositoryMetadata(ctx context.Context, arg UpdateRepositoryMetadataParams) (Repository, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
+	UpdateWebhookInfo(ctx context.Context, arg UpdateWebhookInfoParams) (Repository, error)
 }
 
 var _ Querier = (*Queries)(nil)

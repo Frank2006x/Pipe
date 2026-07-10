@@ -7,35 +7,78 @@ package sqlc
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createRepository = `-- name: CreateRepository :one
-INSERT INTO repositories (name, github_url, default_branch)
-VALUES ($1, $2, $3) RETURNING id, owner_id, github_repo_id, name, full_name, github_url, default_branch, private, webhook_id, webhook_active, created_at, updated_at
+INSERT INTO repositories 
+    (user_id,
+    github_repo_id,
+    name,
+    full_name,
+    html_url,
+    default_branch,
+    private,
+    webhook_id,
+    is_active,
+    owner,
+    description,
+    clone_url
+    ,webhook_secret)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id, user_id, github_repo_id, name, full_name, html_url, default_branch, private, webhook_id, is_active, created_at, updated_at, owner, description, clone_url, webhook_secret
 `
 
 type CreateRepositoryParams struct {
-	Name          string `json:"name"`
-	GithubUrl     string `json:"github_url"`
-	DefaultBranch string `json:"default_branch"`
+	UserID        int64       `json:"user_id"`
+	GithubRepoID  int64       `json:"github_repo_id"`
+	Name          string      `json:"name"`
+	FullName      string      `json:"full_name"`
+	HtmlUrl       string      `json:"html_url"`
+	DefaultBranch string      `json:"default_branch"`
+	Private       bool        `json:"private"`
+	WebhookID     pgtype.Int8 `json:"webhook_id"`
+	IsActive      bool        `json:"is_active"`
+	Owner         string      `json:"owner"`
+	Description   pgtype.Text `json:"description"`
+	CloneUrl      string      `json:"clone_url"`
+	WebhookSecret pgtype.Text `json:"webhook_secret"`
 }
 
 func (q *Queries) CreateRepository(ctx context.Context, arg CreateRepositoryParams) (Repository, error) {
-	row := q.db.QueryRow(ctx, createRepository, arg.Name, arg.GithubUrl, arg.DefaultBranch)
+	row := q.db.QueryRow(ctx, createRepository,
+		arg.UserID,
+		arg.GithubRepoID,
+		arg.Name,
+		arg.FullName,
+		arg.HtmlUrl,
+		arg.DefaultBranch,
+		arg.Private,
+		arg.WebhookID,
+		arg.IsActive,
+		arg.Owner,
+		arg.Description,
+		arg.CloneUrl,
+		arg.WebhookSecret,
+	)
 	var i Repository
 	err := row.Scan(
 		&i.ID,
-		&i.OwnerID,
+		&i.UserID,
 		&i.GithubRepoID,
 		&i.Name,
 		&i.FullName,
-		&i.GithubUrl,
+		&i.HtmlUrl,
 		&i.DefaultBranch,
 		&i.Private,
 		&i.WebhookID,
-		&i.WebhookActive,
+		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Owner,
+		&i.Description,
+		&i.CloneUrl,
+		&i.WebhookSecret,
 	)
 	return i, err
 }
@@ -49,63 +92,151 @@ func (q *Queries) DeleteRepository(ctx context.Context, id int64) error {
 	return err
 }
 
-const findByGithubUrl = `-- name: FindByGithubUrl :one
-SELECT id, owner_id, github_repo_id, name, full_name, github_url, default_branch, private, webhook_id, webhook_active, created_at, updated_at FROM repositories 
-WHERE github_url = $1
+const existsRepository = `-- name: ExistsRepository :one
+SELECT EXISTS (
+    SELECT 1
+    FROM repositories
+    WHERE user_id = $1
+      AND github_repo_id = $2
+)
 `
 
-func (q *Queries) FindByGithubUrl(ctx context.Context, githubUrl string) (Repository, error) {
-	row := q.db.QueryRow(ctx, findByGithubUrl, githubUrl)
+type ExistsRepositoryParams struct {
+	UserID       int64 `json:"user_id"`
+	GithubRepoID int64 `json:"github_repo_id"`
+}
+
+func (q *Queries) ExistsRepository(ctx context.Context, arg ExistsRepositoryParams) (bool, error) {
+	row := q.db.QueryRow(ctx, existsRepository, arg.UserID, arg.GithubRepoID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const getRepositoryByFullName = `-- name: GetRepositoryByFullName :one
+SELECT id, user_id, github_repo_id, name, full_name, html_url, default_branch, private, webhook_id, is_active, created_at, updated_at, owner, description, clone_url, webhook_secret FROM repositories 
+WHERE full_name = $1
+`
+
+func (q *Queries) GetRepositoryByFullName(ctx context.Context, fullName string) (Repository, error) {
+	row := q.db.QueryRow(ctx, getRepositoryByFullName, fullName)
 	var i Repository
 	err := row.Scan(
 		&i.ID,
-		&i.OwnerID,
+		&i.UserID,
 		&i.GithubRepoID,
 		&i.Name,
 		&i.FullName,
-		&i.GithubUrl,
+		&i.HtmlUrl,
 		&i.DefaultBranch,
 		&i.Private,
 		&i.WebhookID,
-		&i.WebhookActive,
+		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Owner,
+		&i.Description,
+		&i.CloneUrl,
+		&i.WebhookSecret,
 	)
 	return i, err
 }
 
-const getRepository = `-- name: GetRepository :one
-SELECT id, owner_id, github_repo_id, name, full_name, github_url, default_branch, private, webhook_id, webhook_active, created_at, updated_at FROM repositories 
-WHERE name = $1
+const getRepositoryByGithubRepoID = `-- name: GetRepositoryByGithubRepoID :one
+SELECT id, user_id, github_repo_id, name, full_name, html_url, default_branch, private, webhook_id, is_active, created_at, updated_at, owner, description, clone_url, webhook_secret FROM repositories 
+WHERE github_repo_id = $1
 `
 
-func (q *Queries) GetRepository(ctx context.Context, name string) (Repository, error) {
-	row := q.db.QueryRow(ctx, getRepository, name)
+func (q *Queries) GetRepositoryByGithubRepoID(ctx context.Context, githubRepoID int64) (Repository, error) {
+	row := q.db.QueryRow(ctx, getRepositoryByGithubRepoID, githubRepoID)
 	var i Repository
 	err := row.Scan(
 		&i.ID,
-		&i.OwnerID,
+		&i.UserID,
 		&i.GithubRepoID,
 		&i.Name,
 		&i.FullName,
-		&i.GithubUrl,
+		&i.HtmlUrl,
 		&i.DefaultBranch,
 		&i.Private,
 		&i.WebhookID,
-		&i.WebhookActive,
+		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Owner,
+		&i.Description,
+		&i.CloneUrl,
+		&i.WebhookSecret,
 	)
 	return i, err
 }
 
-const listRepositories = `-- name: ListRepositories :many
-SELECT id, owner_id, github_repo_id, name, full_name, github_url, default_branch, private, webhook_id, webhook_active, created_at, updated_at FROM repositories 
+const getRepositoryById = `-- name: GetRepositoryById :one
+SELECT id, user_id, github_repo_id, name, full_name, html_url, default_branch, private, webhook_id, is_active, created_at, updated_at, owner, description, clone_url, webhook_secret FROM repositories 
+WHERE id = $1
+`
+
+func (q *Queries) GetRepositoryById(ctx context.Context, id int64) (Repository, error) {
+	row := q.db.QueryRow(ctx, getRepositoryById, id)
+	var i Repository
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.GithubRepoID,
+		&i.Name,
+		&i.FullName,
+		&i.HtmlUrl,
+		&i.DefaultBranch,
+		&i.Private,
+		&i.WebhookID,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Owner,
+		&i.Description,
+		&i.CloneUrl,
+		&i.WebhookSecret,
+	)
+	return i, err
+}
+
+const getRepositoryByWebhookId = `-- name: GetRepositoryByWebhookId :one
+SELECT id, user_id, github_repo_id, name, full_name, html_url, default_branch, private, webhook_id, is_active, created_at, updated_at, owner, description, clone_url, webhook_secret FROM repositories
+WHERE webhook_id = $1
+`
+
+func (q *Queries) GetRepositoryByWebhookId(ctx context.Context, webhookID pgtype.Int8) (Repository, error) {
+	row := q.db.QueryRow(ctx, getRepositoryByWebhookId, webhookID)
+	var i Repository
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.GithubRepoID,
+		&i.Name,
+		&i.FullName,
+		&i.HtmlUrl,
+		&i.DefaultBranch,
+		&i.Private,
+		&i.WebhookID,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Owner,
+		&i.Description,
+		&i.CloneUrl,
+		&i.WebhookSecret,
+	)
+	return i, err
+}
+
+const listRepositoriesByUser = `-- name: ListRepositoriesByUser :many
+SELECT id, user_id, github_repo_id, name, full_name, html_url, default_branch, private, webhook_id, is_active, created_at, updated_at, owner, description, clone_url, webhook_secret FROM repositories 
+WHERE user_id = $1
 ORDER BY created_at DESC
 `
 
-func (q *Queries) ListRepositories(ctx context.Context) ([]Repository, error) {
-	rows, err := q.db.Query(ctx, listRepositories)
+func (q *Queries) ListRepositoriesByUser(ctx context.Context, userID int64) ([]Repository, error) {
+	rows, err := q.db.Query(ctx, listRepositoriesByUser, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -115,17 +246,21 @@ func (q *Queries) ListRepositories(ctx context.Context) ([]Repository, error) {
 		var i Repository
 		if err := rows.Scan(
 			&i.ID,
-			&i.OwnerID,
+			&i.UserID,
 			&i.GithubRepoID,
 			&i.Name,
 			&i.FullName,
-			&i.GithubUrl,
+			&i.HtmlUrl,
 			&i.DefaultBranch,
 			&i.Private,
 			&i.WebhookID,
-			&i.WebhookActive,
+			&i.IsActive,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Owner,
+			&i.Description,
+			&i.CloneUrl,
+			&i.WebhookSecret,
 		); err != nil {
 			return nil, err
 		}
@@ -135,4 +270,156 @@ func (q *Queries) ListRepositories(ctx context.Context) ([]Repository, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const setRepositoryActive = `-- name: SetRepositoryActive :one
+UPDATE repositories
+SET 
+    is_active = $1,
+    updated_at = NOW()
+WHERE user_id = $2 AND github_repo_id = $3
+RETURNING id, user_id, github_repo_id, name, full_name, html_url, default_branch, private, webhook_id, is_active, created_at, updated_at, owner, description, clone_url, webhook_secret
+`
+
+type SetRepositoryActiveParams struct {
+	IsActive     bool  `json:"is_active"`
+	UserID       int64 `json:"user_id"`
+	GithubRepoID int64 `json:"github_repo_id"`
+}
+
+func (q *Queries) SetRepositoryActive(ctx context.Context, arg SetRepositoryActiveParams) (Repository, error) {
+	row := q.db.QueryRow(ctx, setRepositoryActive, arg.IsActive, arg.UserID, arg.GithubRepoID)
+	var i Repository
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.GithubRepoID,
+		&i.Name,
+		&i.FullName,
+		&i.HtmlUrl,
+		&i.DefaultBranch,
+		&i.Private,
+		&i.WebhookID,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Owner,
+		&i.Description,
+		&i.CloneUrl,
+		&i.WebhookSecret,
+	)
+	return i, err
+}
+
+const updateRepositoryMetadata = `-- name: UpdateRepositoryMetadata :one
+UPDATE repositories
+SET 
+    name = $1,
+    full_name = $2,
+    owner = $3,
+    description = $4,
+    default_branch = $5,
+    private = $6,
+    html_url = $7,
+    clone_url = $8,
+    updated_at = NOW()
+WHERE user_id = $9 AND github_repo_id = $10
+RETURNING id, user_id, github_repo_id, name, full_name, html_url, default_branch, private, webhook_id, is_active, created_at, updated_at, owner, description, clone_url, webhook_secret
+`
+
+type UpdateRepositoryMetadataParams struct {
+	Name          string      `json:"name"`
+	FullName      string      `json:"full_name"`
+	Owner         string      `json:"owner"`
+	Description   pgtype.Text `json:"description"`
+	DefaultBranch string      `json:"default_branch"`
+	Private       bool        `json:"private"`
+	HtmlUrl       string      `json:"html_url"`
+	CloneUrl      string      `json:"clone_url"`
+	UserID        int64       `json:"user_id"`
+	GithubRepoID  int64       `json:"github_repo_id"`
+}
+
+func (q *Queries) UpdateRepositoryMetadata(ctx context.Context, arg UpdateRepositoryMetadataParams) (Repository, error) {
+	row := q.db.QueryRow(ctx, updateRepositoryMetadata,
+		arg.Name,
+		arg.FullName,
+		arg.Owner,
+		arg.Description,
+		arg.DefaultBranch,
+		arg.Private,
+		arg.HtmlUrl,
+		arg.CloneUrl,
+		arg.UserID,
+		arg.GithubRepoID,
+	)
+	var i Repository
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.GithubRepoID,
+		&i.Name,
+		&i.FullName,
+		&i.HtmlUrl,
+		&i.DefaultBranch,
+		&i.Private,
+		&i.WebhookID,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Owner,
+		&i.Description,
+		&i.CloneUrl,
+		&i.WebhookSecret,
+	)
+	return i, err
+}
+
+const updateWebhookInfo = `-- name: UpdateWebhookInfo :one
+UPDATE repositories
+SET 
+    webhook_id = $1,
+    webhook_secret = $2,
+    is_active = $3,
+    updated_at = NOW()
+WHERE user_id = $4 AND github_repo_id = $5
+RETURNING id, user_id, github_repo_id, name, full_name, html_url, default_branch, private, webhook_id, is_active, created_at, updated_at, owner, description, clone_url, webhook_secret
+`
+
+type UpdateWebhookInfoParams struct {
+	WebhookID     pgtype.Int8 `json:"webhook_id"`
+	WebhookSecret pgtype.Text `json:"webhook_secret"`
+	IsActive      bool        `json:"is_active"`
+	UserID        int64       `json:"user_id"`
+	GithubRepoID  int64       `json:"github_repo_id"`
+}
+
+func (q *Queries) UpdateWebhookInfo(ctx context.Context, arg UpdateWebhookInfoParams) (Repository, error) {
+	row := q.db.QueryRow(ctx, updateWebhookInfo,
+		arg.WebhookID,
+		arg.WebhookSecret,
+		arg.IsActive,
+		arg.UserID,
+		arg.GithubRepoID,
+	)
+	var i Repository
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.GithubRepoID,
+		&i.Name,
+		&i.FullName,
+		&i.HtmlUrl,
+		&i.DefaultBranch,
+		&i.Private,
+		&i.WebhookID,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Owner,
+		&i.Description,
+		&i.CloneUrl,
+		&i.WebhookSecret,
+	)
+	return i, err
 }
