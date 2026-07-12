@@ -5,16 +5,14 @@ import (
 	"Frank2006x/Pipe/internal/api/handler"
 	"Frank2006x/Pipe/internal/api/middleware"
 	"Frank2006x/Pipe/internal/auth"
-	"Frank2006x/Pipe/internal/config"
 	"Frank2006x/Pipe/internal/github"
 	"Frank2006x/Pipe/internal/service"
 
 	"github.com/gofiber/fiber/v3"
 )
 
-func AuthRouter(router *fiber.App, queries *sqlc.Queries, githubClient *github.Client, config config.Config) {
+func AuthRouter(router *fiber.App, queries *sqlc.Queries, githubClient *github.Client, jwtMaker *auth.JwtMaker) {
 
-	jwtMaker := auth.NewJwtMaker(config.JWT_SECRET)
 	authService := service.NewAuthService(githubClient, jwtMaker, queries)
 	authHandler := handler.NewAuthHandler(authService)
 	authGroup := router.Group("/auth")
