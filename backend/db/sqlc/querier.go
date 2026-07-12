@@ -16,7 +16,7 @@ type Querier interface {
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteRepository(ctx context.Context, id int64) error
 	ExistsRepository(ctx context.Context, arg ExistsRepositoryParams) (bool, error)
-	GetGithubToken(ctx context.Context, userID int64) (GithubToken, error)
+	GetGithubToken(ctx context.Context, userID int64) (string, error)
 	GetRepositoryByFullName(ctx context.Context, fullName string) (Repository, error)
 	GetRepositoryByGithubRepoID(ctx context.Context, githubRepoID int64) (Repository, error)
 	GetRepositoryById(ctx context.Context, id int64) (Repository, error)

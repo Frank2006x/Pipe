@@ -7,7 +7,7 @@ UPDATE github_tokens SET access_token = $2, updated_at = NOW()
 WHERE user_id = $1 RETURNING *;
 
 -- name: GetGithubToken :one
-SELECT *
+SELECT access_token
 FROM github_tokens
 WHERE user_id = $1
 LIMIT 1;
