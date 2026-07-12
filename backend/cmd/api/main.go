@@ -6,6 +6,7 @@ import (
 	"Frank2006x/Pipe/internal/api/router"
 	"Frank2006x/Pipe/internal/config"
 	"Frank2006x/Pipe/internal/db"
+	"Frank2006x/Pipe/internal/github"
 	"context"
 	"errors"
 	"log"
@@ -33,13 +34,14 @@ func main() {
 		panic(err)
 	}
 	queries := sqlc.New(pool)
+	githubClient := github.NewClient(cfg)
 
 	app := fiber.New()
 	app.Use(logger.New())
 	app.Use(middleware.RequestIDMiddleware())
 
 	router.RepositoryRouter(app, queries)
-	router.AuthRouter(app, queries, cfg)
+	router.AuthRouter(app, queries, githubClient, cfg)
 
 	shutdownChannel := make(chan os.Signal, 1)
 	signal.Notify(shutdownChannel, syscall.SIGTERM, syscall.SIGINT)

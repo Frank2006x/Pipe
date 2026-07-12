@@ -12,8 +12,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-func AuthRouter(router *fiber.App, queries *sqlc.Queries, config config.Config) {
-	githubClient := github.NewClient(config)
+func AuthRouter(router *fiber.App, queries *sqlc.Queries, githubClient *github.Client, config config.Config) {
 
 	jwtMaker := auth.NewJwtMaker(config.JWT_SECRET)
 	authService := service.NewAuthService(githubClient, jwtMaker, queries)
