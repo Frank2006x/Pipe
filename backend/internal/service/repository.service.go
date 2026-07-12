@@ -28,7 +28,7 @@ func (s *RepositoryService) CreateRepository(ctx context.Context, req sqlc.Creat
 }
 
 func (s *RepositoryService) ListAllRepositories(ctx context.Context, userId int64) ([]github.Repository, error) {
-	accessToken, err := s.queries.GetGithubToken(ctx, userId)
+	accessToken, err := s.queries.GetGithubToken(ctx, userId) // cache the access token in the future to avoid querying the database every time
 	if err != nil {
 		return nil, err
 	}
@@ -39,3 +39,15 @@ func (s *RepositoryService) ListAllRepositories(ctx context.Context, userId int6
 	return repositories, nil
 }
 
+func (s *RepositoryService) GetRepository(ctx context.Context, userId int64, owner string, repo string) (*github.Repository, error) {
+	accessToken, err := s.queries.GetGithubToken(ctx, userId) // cache the access token in the future to avoid querying the database every time
+	if err != nil {
+		return nil, err
+	}
+	repository, err := s.githubClient.GetRepository(ctx, accessToken, owner, repo)
+	if err != nil {
+		return nil, err
+	}
+	return repository, nil
+
+}

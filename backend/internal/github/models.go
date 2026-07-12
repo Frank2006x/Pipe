@@ -14,11 +14,32 @@ type User struct {
 	Name      string `json:"name"`
 }
 
+type RepositoryOwner struct {
+	ID    int64  `json:"id"`
+	Login string `json:"login"`
+}
+
 type Repository struct {
-    ID              int64
-    Name            string
-    FullName        string
-    Private         bool
-    DefaultBranch   string
-    HTMLURL         string
+	ID            int64  `json:"id"`
+	Name          string `json:"name"`
+	FullName      string `json:"full_name"`
+
+	Owner         RepositoryOwner `json:"owner"`
+
+	Description   string `json:"description"`
+	DefaultBranch string `json:"default_branch"`
+
+	Private       bool   `json:"private"`
+
+	HTMLURL       string `json:"html_url"`
+	CloneURL      string `json:"clone_url"`
+
+	Language       string `json:"language"`
+	Visibility     string `json:"visibility"`
+	Archived       bool   `json:"archived"`
+	Disabled       bool   `json:"disabled"`
+
+	CreatedAt      string `json:"created_at"`
+	UpdatedAt      string `json:"updated_at"`
+	PushedAt       string `json:"pushed_at"`
 }

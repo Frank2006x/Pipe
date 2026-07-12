@@ -48,3 +48,19 @@ func (h *RepositoryHandler) ListAllRepositories(c fiber.Ctx) error {
 		"repositories": repositories,
 	})
 }
+
+func (h *RepositoryHandler) GetRepository(c fiber.Ctx) error {
+	userId := c.Locals("user_id").(int64)
+	owner := c.Params("owner")
+	repo := c.Params("repo")
+
+	repository, err := h.repositoryService.GetRepository(c.Context(), userId, owner, repo)
+	if err != nil {
+		return err
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message":    "Repository retrieved successfully",
+		"repository": repository,
+	})
+}

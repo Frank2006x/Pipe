@@ -21,5 +21,7 @@ func RepositoryRouter(router *fiber.App, queries *sqlc.Queries, githubClient *gi
 		return c.SendString("Hello, World!")
 	})
 	repositoryGroup.Post("/", RepositoryHandler.CreateRepository)
-	repositoryGroup.Get("/", RepositoryHandler.ListAllRepositories)
+	repositoryGroup.Get("/all", RepositoryHandler.ListAllRepositories)
+	repositoryGroup.Get("/:owner/:repo", RepositoryHandler.GetRepository)
+
 }

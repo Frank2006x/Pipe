@@ -20,8 +20,9 @@ const (
 	authorizeURL = baseURL + "/login/oauth/authorize"
 	tokenURL     = baseURL + "/login/oauth/access_token"
 
-	userEndpoint         = apiURL + "/user"
-	repositoriesEndpoint = apiURL + "/user/repos"
+	userEndpoint                = apiURL + "/user"
+	listAllRepositoriesEndpoint = apiURL + "/user/repos"
+	repositoriesEndpoint        = apiURL + "/repos/%s/%s"
 
 	userAgent = "Pipe"
 )
@@ -100,7 +101,11 @@ func (c *Client) do(
 		return err
 	}
 	defer resp.Body.Close()
-
+	// bodyBytes, err := io.ReadAll(resp.Body)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to read response body: %w", err)
+	// }
+	// fmt.Printf("\n--- RAW GITHUB RESPONSE ---\n%s\n---------------------------\n", string(bodyBytes))
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 
 		var githubErr struct {
@@ -215,7 +220,7 @@ func (c *Client) ListRepositories(
 	req, err := c.newRequest(
 		ctx,
 		http.MethodGet,
-		repositoriesEndpoint,
+		listAllRepositoriesEndpoint,
 		nil,
 		token,
 	)
@@ -228,6 +233,36 @@ func (c *Client) ListRepositories(
 	if err := c.do(req, &repos); err != nil {
 		return nil, err
 	}
-
+	
 	return repos, nil
+}
+
+func (c *Client) GetRepository(
+	ctx context.Context,
+	token string,
+	owner string,
+	repo string,
+) (*Repository, error) {
+
+	endpoint := fmt.Sprintf(repositoriesEndpoint, owner, repo)
+
+	req, err := c.newRequest(
+		ctx,
+		http.MethodGet,
+		endpoint,
+		nil,
+		token,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	var repository Repository
+
+	if err := c.do(req, &repository); err != nil {
+		return nil, err
+	}
+
+	return &repository, nil
+
 }
