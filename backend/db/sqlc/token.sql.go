@@ -32,22 +32,17 @@ func (q *Queries) CreateGithubToken(ctx context.Context, arg CreateGithubTokenPa
 }
 
 const getGithubToken = `-- name: GetGithubToken :one
-SELECT user_id, access_token, created_at, updated_at
+SELECT access_token
 FROM github_tokens
 WHERE user_id = $1
 LIMIT 1
 `
 
-func (q *Queries) GetGithubToken(ctx context.Context, userID int64) (GithubToken, error) {
+func (q *Queries) GetGithubToken(ctx context.Context, userID int64) (string, error) {
 	row := q.db.QueryRow(ctx, getGithubToken, userID)
-	var i GithubToken
-	err := row.Scan(
-		&i.UserID,
-		&i.AccessToken,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+	var access_token string
+	err := row.Scan(&access_token)
+	return access_token, err
 }
 
 const updateGithubToken = `-- name: UpdateGithubToken :one

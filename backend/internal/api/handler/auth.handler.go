@@ -45,7 +45,7 @@ func (h *AuthHandler) Callback(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, "Failed to handle callback")
 	}
 	c.Cookie(&fiber.Cookie{
-		Name:     "access_token",
+		Name:     "jwt_token",
 		Value:    token,
 		HTTPOnly: true,
 		Secure:   false, // true in production

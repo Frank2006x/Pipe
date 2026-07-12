@@ -9,7 +9,7 @@ import (
 
 func AuthMiddleware(jwt *auth.JwtMaker) fiber.Handler {
 	return func(c fiber.Ctx) error {
-		token := c.Cookies("access_token")
+		token := c.Cookies("jwt_token")
 
 		log.Infof("Cookie Token: %s", token)
 		if token == "" {
