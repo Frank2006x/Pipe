@@ -22,7 +22,7 @@ WHERE github_repo_id = $1;
 
 -- name: GetRepositoryById :one
 SELECT * FROM repositories 
-WHERE id = $1;
+WHERE id = $1 AND user_id = $2;
 
 -- name: GetRepositoryByFullName :one
 SELECT * FROM repositories 

@@ -57,4 +57,21 @@ func (s *RepositoryService) ImportRepository(ctx context.Context, userId int64, 
 	return newRepository, nil
 }
 
+func (s *RepositoryService) ListAllRepositories(ctx context.Context, userId int64) ([]sqlc.Repository, error) {
+	repositories, err := s.queries.ListRepositoriesByUser(ctx, userId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list repositories: %w", err)
+	}
+	return repositories, nil
+}
 
+func (s *RepositoryService) GetRepository(ctx context.Context, userId int64, repoId int64) (sqlc.Repository, error) {
+	repository, err := s.queries.GetRepositoryById(ctx, sqlc.GetRepositoryByIdParams{
+		ID:     repoId,
+		UserID: userId,
+	})
+	if err != nil {
+		return sqlc.Repository{}, fmt.Errorf("failed to get repository: %w", err)
+	}
+	return repository, nil
+}

@@ -173,11 +173,16 @@ func (q *Queries) GetRepositoryByGithubRepoID(ctx context.Context, githubRepoID 
 
 const getRepositoryById = `-- name: GetRepositoryById :one
 SELECT id, user_id, github_repo_id, name, full_name, html_url, default_branch, private, webhook_id, is_active, created_at, updated_at, owner, description, clone_url, webhook_secret FROM repositories 
-WHERE id = $1
+WHERE id = $1 AND user_id = $2
 `
 
-func (q *Queries) GetRepositoryById(ctx context.Context, id int64) (Repository, error) {
-	row := q.db.QueryRow(ctx, getRepositoryById, id)
+type GetRepositoryByIdParams struct {
+	ID     int64 `json:"id"`
+	UserID int64 `json:"user_id"`
+}
+
+func (q *Queries) GetRepositoryById(ctx context.Context, arg GetRepositoryByIdParams) (Repository, error) {
+	row := q.db.QueryRow(ctx, getRepositoryById, arg.ID, arg.UserID)
 	var i Repository
 	err := row.Scan(
 		&i.ID,
