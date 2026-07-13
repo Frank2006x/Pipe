@@ -42,7 +42,7 @@ func main() {
 	app.Use(logger.New())
 	app.Use(middleware.RequestIDMiddleware())
 
-	router.RepositoryRouter(app, queries, githubClient, jwtMaker)
+	router.RepositoryRouter(app, queries, jwtMaker)
 	router.AuthRouter(app, queries, githubClient, jwtMaker)
 
 	shutdownChannel := make(chan os.Signal, 1)
