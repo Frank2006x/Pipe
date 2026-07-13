@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"Frank2006x/Pipe/db/sqlc"
 	"Frank2006x/Pipe/internal/service"
+	"errors"
 	"strconv"
 
 	"github.com/gofiber/fiber/v3"
@@ -19,23 +19,6 @@ func NewRepositoryHandler(repositoryService *service.RepositoryService) *Reposit
 	}
 }
 
-func (h *RepositoryHandler) CreateRepository(c fiber.Ctx) error {
-	var req sqlc.CreateRepositoryParams
-	if err := c.Bind().Body(&req); err != nil {
-		return err
-	}
-
-	repository, err := h.repositoryService.CreateRepository(c.Context(), req)
-	if err != nil {
-		return err
-	}
-
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"message":    "Repository created successfully",
-		"repository": repository,
-	})
-}
-
 func (h *RepositoryHandler) ImportRepository(c fiber.Ctx) error {
 	var req struct {
 		Owner string `json:"owner"`
@@ -45,13 +28,16 @@ func (h *RepositoryHandler) ImportRepository(c fiber.Ctx) error {
 		log.Errorf("Error parsing request body: %v", err)
 		return fiber.NewError(fiber.StatusBadRequest, "Invalid request body")
 	}
-
-	userId := c.Locals("userId").(int64)
-
+	log.Infof("Received import request: %+v", req)
+	userId := c.Locals("user_id").(int64)
+	log.Infof("Importing repository for user ID: %d, owner: %s, repo: %s\n", userId, req.Owner, req.Repo)
 	repository, err := h.repositoryService.ImportRepository(c.Context(), userId, req.Owner, req.Repo)
 
 	if err != nil {
 		log.Errorf("Error importing repository: %v", err)
+		if errors.Is(err, service.ErrRepoAlreadyExists) {
+			return fiber.NewError(fiber.StatusConflict, err.Error())
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "Failed to import repository")
 	}
 
@@ -62,7 +48,7 @@ func (h *RepositoryHandler) ImportRepository(c fiber.Ctx) error {
 }
 
 func (h *RepositoryHandler) ListAllRepositories(c fiber.Ctx) error {
-	userId := c.Locals("userId").(int64)
+	userId := c.Locals("user_id").(int64)
 
 	repositories, err := h.repositoryService.ListAllRepositories(c.Context(), userId)
 	if err != nil {
@@ -76,8 +62,8 @@ func (h *RepositoryHandler) ListAllRepositories(c fiber.Ctx) error {
 }
 
 func (h *RepositoryHandler) GetRepositoryById(c fiber.Ctx) error {
-	userId := c.Locals("userId").(int64)
-	repoIdStr := c.Params("repoId")
+	userId := c.Locals("user_id").(int64)
+	repoIdStr := c.Params("id")
 
 	repoId, err := strconv.ParseInt(repoIdStr, 10, 64)
 	if err != nil {

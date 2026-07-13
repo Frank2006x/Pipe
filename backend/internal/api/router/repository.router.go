@@ -19,7 +19,7 @@ func RepositoryRouter(router *fiber.App, queries *sqlc.Queries, githubService *s
 	repositoryGroup.Get("/hello", func(c fiber.Ctx) error {
 		return c.SendString("Hello, World!")
 	})
-	repositoryGroup.Post("/import", RepositoryHandler.CreateRepository)
+	repositoryGroup.Post("/import", RepositoryHandler.ImportRepository)
 	repositoryGroup.Get("/", RepositoryHandler.ListAllRepositories)
 	repositoryGroup.Get("/:id", RepositoryHandler.GetRepositoryById)
 

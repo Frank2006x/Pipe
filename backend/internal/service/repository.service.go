@@ -4,10 +4,11 @@ import (
 	"Frank2006x/Pipe/db/sqlc"
 	"Frank2006x/Pipe/internal/mapper"
 	"context"
+	"errors"
 	"fmt"
-
-	"github.com/gofiber/fiber/v3"
 )
+
+var ErrRepoAlreadyExists = errors.New("repository has already been imported")
 
 type RepositoryService struct {
 	queries       *sqlc.Queries
@@ -44,7 +45,7 @@ func (s *RepositoryService) ImportRepository(ctx context.Context, userId int64, 
 		return sqlc.Repository{}, fmt.Errorf("failed to check if repository exists: %w", err)
 	}
 	if exist {
-		return sqlc.Repository{}, fiber.NewError(fiber.StatusConflict, "Repository already exists")
+		return sqlc.Repository{}, ErrRepoAlreadyExists
 	}
 
 	githubRepoParams := mapper.MapGitHubRepository(userId, githubRepo)

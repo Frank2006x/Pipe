@@ -20,4 +20,5 @@ func AuthRouter(router *fiber.App, queries *sqlc.Queries, githubClient *github.C
 	authGroup.Get("/github", authHandler.GetRedirctLink)
 	authGroup.Get("/github/callback", authHandler.Callback)
 	authGroup.Get("/me", middleware.AuthMiddleware(jwtMaker), authHandler.GetUserInfo)
+	authGroup.Get("/logout", middleware.AuthMiddleware(jwtMaker), authHandler.Logout)
 }

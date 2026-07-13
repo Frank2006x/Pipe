@@ -69,3 +69,17 @@ func (h *AuthHandler) GetUserInfo(c fiber.Ctx) error {
 
 	return c.JSON(user)
 }
+
+func (h *AuthHandler) Logout(c fiber.Ctx) error {
+	c.Cookie(&fiber.Cookie{
+		Name:     "jwt_token",
+		Value:    "",
+		HTTPOnly: true,
+		Secure:   false, // true in production
+		SameSite: "Lax",
+	})
+
+	return c.JSON(fiber.Map{
+		"message": "Successfully logged out",
+	})
+}
