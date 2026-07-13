@@ -22,7 +22,7 @@ func (h *GithubHandler) ListAllRepositories(c fiber.Ctx) error {
 
 	repositories, err := h.githubService.ListAllRepositories(c.Context(), userId)
 	if err != nil {
-		return err
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to list repositories")
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
@@ -38,7 +38,7 @@ func (h *GithubHandler) GetRepository(c fiber.Ctx) error {
 
 	repository, err := h.githubService.GetRepository(c.Context(), userId, owner, repo)
 	if err != nil {
-		return err
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to get repository")
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
