@@ -10,8 +10,8 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-func RepositoryRouter(router *fiber.App, queries *sqlc.Queries, jwtMaker *auth.JwtMaker) {
-	RepositoryService := service.NewRepositoryService(queries)
+func RepositoryRouter(router *fiber.App, queries *sqlc.Queries, githubService *service.GithubService, jwtMaker *auth.JwtMaker) {
+	RepositoryService := service.NewRepositoryService(queries, githubService)
 	RepositoryHandler := handler.NewRepositoryHandler(RepositoryService)
 
 	repositoryGroup := router.Group("/repositories")

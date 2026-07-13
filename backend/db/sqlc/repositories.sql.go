@@ -97,17 +97,17 @@ SELECT EXISTS (
     SELECT 1
     FROM repositories
     WHERE user_id = $1
-      AND github_repo_id = $2
+      AND full_name = $2
 )
 `
 
 type ExistsRepositoryParams struct {
-	UserID       int64 `json:"user_id"`
-	GithubRepoID int64 `json:"github_repo_id"`
+	UserID   int64  `json:"user_id"`
+	FullName string `json:"full_name"`
 }
 
 func (q *Queries) ExistsRepository(ctx context.Context, arg ExistsRepositoryParams) (bool, error) {
-	row := q.db.QueryRow(ctx, existsRepository, arg.UserID, arg.GithubRepoID)
+	row := q.db.QueryRow(ctx, existsRepository, arg.UserID, arg.FullName)
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err

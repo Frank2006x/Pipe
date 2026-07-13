@@ -8,6 +8,7 @@ import (
 	"Frank2006x/Pipe/internal/config"
 	"Frank2006x/Pipe/internal/db"
 	"Frank2006x/Pipe/internal/github"
+	"Frank2006x/Pipe/internal/service"
 	"context"
 	"errors"
 	"log"
@@ -37,13 +38,14 @@ func main() {
 	queries := sqlc.New(pool)
 	githubClient := github.NewClient(cfg)
 	jwtMaker := auth.NewJwtMaker(cfg.JWT_SECRET)
-
+	githubService := service.NewGithubService(githubClient, queries)
 	app := fiber.New()
 	app.Use(logger.New())
 	app.Use(middleware.RequestIDMiddleware())
 
-	router.RepositoryRouter(app, queries, jwtMaker)
+	router.RepositoryRouter(app, queries,githubService, jwtMaker)
 	router.AuthRouter(app, queries, githubClient, jwtMaker)
+	router.GithubRouter(app, githubService, jwtMaker)
 
 	shutdownChannel := make(chan os.Signal, 1)
 	signal.Notify(shutdownChannel, syscall.SIGTERM, syscall.SIGINT)

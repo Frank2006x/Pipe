@@ -80,5 +80,5 @@ SELECT EXISTS (
     SELECT 1
     FROM repositories
     WHERE user_id = $1
-      AND github_repo_id = $2
+      AND full_name = $2
 );
