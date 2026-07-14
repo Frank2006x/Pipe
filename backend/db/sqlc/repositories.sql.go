@@ -83,13 +83,21 @@ func (q *Queries) CreateRepository(ctx context.Context, arg CreateRepositoryPara
 	return i, err
 }
 
-const deleteRepository = `-- name: DeleteRepository :exec
-DELETE FROM repositories WHERE id = $1
+const deleteRepository = `-- name: DeleteRepository :execrows
+DELETE FROM repositories WHERE id = $1 AND user_id = $2
 `
 
-func (q *Queries) DeleteRepository(ctx context.Context, id int64) error {
-	_, err := q.db.Exec(ctx, deleteRepository, id)
-	return err
+type DeleteRepositoryParams struct {
+	ID     int64 `json:"id"`
+	UserID int64 `json:"user_id"`
+}
+
+func (q *Queries) DeleteRepository(ctx context.Context, arg DeleteRepositoryParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteRepository, arg.ID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const existsRepository = `-- name: ExistsRepository :one

@@ -71,8 +71,8 @@ RETURNING *;
 SELECT * FROM repositories
 WHERE webhook_id = $1;
 
--- name: DeleteRepository :exec
-DELETE FROM repositories WHERE id = $1;
+-- name: DeleteRepository :execrows
+DELETE FROM repositories WHERE id = $1 AND user_id = $2;
 
 
 -- name: ExistsRepository :one
