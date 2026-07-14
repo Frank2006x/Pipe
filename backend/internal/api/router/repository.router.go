@@ -22,5 +22,5 @@ func RepositoryRouter(router *fiber.App, queries *sqlc.Queries, githubService *s
 	repositoryGroup.Post("/import", RepositoryHandler.ImportRepository)
 	repositoryGroup.Get("/", RepositoryHandler.ListAllRepositories)
 	repositoryGroup.Get("/:id", RepositoryHandler.GetRepositoryById)
-
+	repositoryGroup.Delete("/:id", RepositoryHandler.DeleteRepository)
 }

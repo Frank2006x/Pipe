@@ -81,3 +81,28 @@ func (h *RepositoryHandler) GetRepositoryById(c fiber.Ctx) error {
 		"repository": repository,
 	})
 }
+
+func (h *RepositoryHandler) DeleteRepository(c fiber.Ctx) error {
+	userId := c.Locals("user_id").(int64)
+	repoIdStr := c.Params("id")
+
+	repoId, err := strconv.ParseInt(repoIdStr, 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid repository ID format",
+		})
+	}
+
+	err = h.repositoryService.DeleteRepository(c.Context(), userId, repoId)
+	if err != nil {
+		log.Errorf("Error deleting repository: %v", err)
+		if errors.Is(err, service.ErrRepoNotFound) {
+			return fiber.NewError(fiber.StatusNotFound, err.Error())
+		}
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to delete repository")
+	}
+
+	return c.JSON(fiber.Map{
+		"message": "Repository deleted successfully",
+	})
+}

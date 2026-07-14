@@ -9,7 +9,7 @@ import (
 )
 
 var ErrRepoAlreadyExists = errors.New("repository has already been imported")
-
+var ErrRepoNotFound = errors.New("repository not found")
 type RepositoryService struct {
 	queries       *sqlc.Queries
 	githubService *GithubService
@@ -75,4 +75,18 @@ func (s *RepositoryService) GetRepository(ctx context.Context, userId int64, rep
 		return sqlc.Repository{}, fmt.Errorf("failed to get repository: %w", err)
 	}
 	return repository, nil
+}
+
+func (s *RepositoryService) DeleteRepository(ctx context.Context, userId int64, repoId int64) error {
+	row,err := s.queries.DeleteRepository(ctx, sqlc.DeleteRepositoryParams{
+		ID:     repoId,
+		UserID: userId,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete repository: %w", err)
+	}
+	if row == 0 {
+		return ErrRepoNotFound
+	}
+	return nil
 }
