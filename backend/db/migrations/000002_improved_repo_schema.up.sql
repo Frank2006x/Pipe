@@ -19,7 +19,7 @@ ALTER TABLE repositories
     ADD COLUMN clone_url TEXT NOT NULL DEFAULT '',
     ADD COLUMN webhook_secret TEXT,
     ALTER COLUMN private DROP DEFAULT,
-    ALTER COLUMN is_active SET DEFAULT TRUE;
+    ALTER COLUMN is_active SET DEFAULT FALSE;
 
 ALTER TABLE repositories 
     DROP CONSTRAINT IF EXISTS repositories_github_repo_id_key;
