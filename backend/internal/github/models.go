@@ -47,3 +47,21 @@ type Repository struct {
 	UpdatedAt time.Time `json:"updated_at"`
 	PushedAt  time.Time `json:"pushed_at"`
 }
+
+type WebhookConfig struct {
+    URL         string `json:"url"`
+    ContentType string `json:"content_type"`
+    Secret      string `json:"secret"`
+    InsecureSSL string `json:"insecure_ssl"`
+}
+
+type CreateWebhookRequest struct {
+    Name   string         `json:"name"`
+    Active bool           `json:"active"`
+    Events []string       `json:"events"`
+    Config WebhookConfig  `json:"config"`
+}
+
+type Webhook struct {
+    ID int64 `json:"id"`
+}

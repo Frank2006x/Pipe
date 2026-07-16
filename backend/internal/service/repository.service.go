@@ -3,13 +3,17 @@ package service
 import (
 	"Frank2006x/Pipe/db/sqlc"
 	"Frank2006x/Pipe/internal/mapper"
+	"Frank2006x/Pipe/internal/util/random"
 	"context"
 	"errors"
 	"fmt"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 var ErrRepoAlreadyExists = errors.New("repository has already been imported")
 var ErrRepoNotFound = errors.New("repository not found")
+
 type RepositoryService struct {
 	queries       *sqlc.Queries
 	githubService *GithubService
@@ -48,11 +52,27 @@ func (s *RepositoryService) ImportRepository(ctx context.Context, userId int64, 
 		return sqlc.Repository{}, ErrRepoAlreadyExists
 	}
 
+	secret := random.GenerateRandomSecret()
+	webhook, err := s.githubService.CreateWebhook(ctx, userId, owner, repo, secret)
+	if err != nil {
+		return sqlc.Repository{}, fmt.Errorf("failed to create webhook: %w", err)
+	}
 	githubRepoParams := mapper.MapGitHubRepository(userId, githubRepo)
 
 	newRepository, err := s.queries.CreateRepository(ctx, githubRepoParams)
 	if err != nil {
 		return sqlc.Repository{}, fmt.Errorf("failed to create repository: %w", err)
+	}
+
+	newRepository, err = s.UpdateWebhookInfo(
+		ctx,
+		userId,
+		githubRepo.ID,
+		webhook.ID,
+		secret,
+	)
+	if err != nil {
+		return sqlc.Repository{}, fmt.Errorf("failed to update webhook info: %w", err)
 	}
 
 	return newRepository, nil
@@ -78,7 +98,7 @@ func (s *RepositoryService) GetRepository(ctx context.Context, userId int64, rep
 }
 
 func (s *RepositoryService) DeleteRepository(ctx context.Context, userId int64, repoId int64) error {
-	row,err := s.queries.DeleteRepository(ctx, sqlc.DeleteRepositoryParams{
+	row, err := s.queries.DeleteRepository(ctx, sqlc.DeleteRepositoryParams{
 		ID:     repoId,
 		UserID: userId,
 	})
@@ -89,4 +109,18 @@ func (s *RepositoryService) DeleteRepository(ctx context.Context, userId int64, 
 		return ErrRepoNotFound
 	}
 	return nil
+}
+
+func (s *RepositoryService) UpdateWebhookInfo(ctx context.Context, userId int64, githubRepoId int64, webhookId int64, webhookSecret string) (sqlc.Repository, error) {
+	repository, err := s.queries.UpdateWebhookInfo(ctx, sqlc.UpdateWebhookInfoParams{
+		UserID:        userId,
+		GithubRepoID:  githubRepoId,
+		WebhookID:     pgtype.Int8{Int64: webhookId, Valid: true},
+		WebhookSecret: pgtype.Text{String: webhookSecret, Valid: true},
+		IsActive:      true,
+	})
+	if err != nil {
+		return sqlc.Repository{}, fmt.Errorf("failed to update webhook info: %w", err)
+	}
+	return repository, nil
 }

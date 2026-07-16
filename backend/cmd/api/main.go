@@ -38,12 +38,12 @@ func main() {
 	queries := sqlc.New(pool)
 	githubClient := github.NewClient(cfg)
 	jwtMaker := auth.NewJwtMaker(cfg.JWT_SECRET)
-	githubService := service.NewGithubService(githubClient, queries)
+	githubService := service.NewGithubService(githubClient, queries, &cfg)
 	app := fiber.New()
 	app.Use(logger.New())
 	app.Use(middleware.RequestIDMiddleware())
 
-	router.RepositoryRouter(app, queries,githubService, jwtMaker)
+	router.RepositoryRouter(app, queries, githubService, jwtMaker)
 	router.AuthRouter(app, queries, githubClient, jwtMaker)
 	router.GithubRouter(app, githubService, jwtMaker)
 

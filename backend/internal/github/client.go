@@ -23,8 +23,8 @@ const (
 	userEndpoint                = apiURL + "/user"
 	listAllRepositoriesEndpoint = apiURL + "/user/repos"
 	repositoriesEndpoint        = apiURL + "/repos/%s/%s"
-
-	userAgent = "Pipe"
+	createWebhookEndpoint       = apiURL + "/repos/%s/%s/hooks"
+	userAgent                   = "Pipe"
 )
 
 type GitHubClient interface {
@@ -233,7 +233,7 @@ func (c *Client) ListRepositories(
 	if err := c.do(req, &repos); err != nil {
 		return nil, err
 	}
-	
+
 	return repos, nil
 }
 
@@ -265,4 +265,48 @@ func (c *Client) GetRepository(
 
 	return &repository, nil
 
+}
+
+func (c *Client) CreateWebhook(
+	ctx context.Context,
+	token string,
+	owner string,
+	repo string,
+	webhookConfig WebhookConfig,
+) (*Webhook, error) {
+
+	endpoint := fmt.Sprintf(createWebhookEndpoint, owner, repo)
+
+	webhookRequest := CreateWebhookRequest{
+		Name:   "web",
+		Active: true,
+		Events: []string{"push", "pull_request"},
+		Config: webhookConfig,
+	}
+
+	jsonBody, err := json.Marshal(webhookRequest)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal webhook request: %w", err)
+	}
+
+	req, err := c.newRequest(
+		ctx,
+		http.MethodPost,
+		endpoint,
+		strings.NewReader(string(jsonBody)),
+		token,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create webhook request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+
+	var webhookResponse Webhook
+	if err := c.do(req, &webhookResponse); err != nil {
+		return nil,fmt.Errorf("failed to create webhook: %w", err)
+	}
+
+	return &webhookResponse, nil
 }

@@ -25,5 +25,6 @@ func CheckConfig(config Config) error {
 	if config.JWT_SECRET == "" {
 		return &ConfigError{Field: "JWT_SECRET", Message: "JWT_SECRET is required"}
 	}
+	
 	return nil
 }
