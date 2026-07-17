@@ -6,6 +6,8 @@ import (
 	"Frank2006x/Pipe/internal/github"
 	"context"
 	"fmt"
+
+	"github.com/gofiber/fiber/v3/log"
 )
 
 type GithubService struct {
@@ -54,11 +56,12 @@ func (s *GithubService) CreateWebhook(ctx context.Context, userId int64, owner s
 		return nil, fmt.Errorf("failed to get GitHub token: %w", err)
 	}
 	webhookConfig := github.WebhookConfig{
-		URL:         s.config.WEBHOOK_BASE_URL,
+		URL:         s.config.WEBHOOK_BASE_URL + "/webhooks/github",
 		ContentType: "json",
 		Secret:      secret,
 		InsecureSSL: "0",
 	}
+	log.Infof("Creating webhook for repository %s/%s with config: %+v", owner, repo, webhookConfig)
 	webHook, err := s.githubClient.CreateWebhook(ctx, accessToken, owner, repo, webhookConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create webhook: %w", err)

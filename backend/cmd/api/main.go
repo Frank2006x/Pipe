@@ -46,6 +46,10 @@ func main() {
 	router.RepositoryRouter(app, queries, githubService, jwtMaker)
 	router.AuthRouter(app, queries, githubClient, jwtMaker)
 	router.GithubRouter(app, githubService, jwtMaker)
+	router.WebhookRouter(app)
+	app.Get("/ping", func(c fiber.Ctx) error {
+		return c.SendStatus(http.StatusOK)
+	})
 
 	shutdownChannel := make(chan os.Signal, 1)
 	signal.Notify(shutdownChannel, syscall.SIGTERM, syscall.SIGINT)
