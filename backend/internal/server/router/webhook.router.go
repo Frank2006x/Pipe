@@ -1,7 +1,7 @@
 package router
 
 import (
-	"Frank2006x/Pipe/internal/api/handler"
+	"Frank2006x/Pipe/internal/server/handler"
 
 	"github.com/gofiber/fiber/v3"
 )

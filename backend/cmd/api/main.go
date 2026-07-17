@@ -2,8 +2,8 @@ package main
 
 import (
 	"Frank2006x/Pipe/db/sqlc"
-	"Frank2006x/Pipe/internal/api/middleware"
-	"Frank2006x/Pipe/internal/api/router"
+	"Frank2006x/Pipe/internal/server/middleware"
+	"Frank2006x/Pipe/internal/server/router"
 	"Frank2006x/Pipe/internal/auth"
 	"Frank2006x/Pipe/internal/config"
 	"Frank2006x/Pipe/internal/db"
