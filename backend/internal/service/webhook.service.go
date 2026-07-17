@@ -19,28 +19,63 @@ func NewWebhookService(querier *sqlc.Queries) *WebhookService {
 	}
 }
 
-func (s *WebhookService) CheckSignature(ctx context.Context, userId int64, githubRepoId int64, xHubSignature string, payload []byte) (bool, error) {
+func VerifySignature(secret string, payload []byte, signature string) error {
+	if signature == "" {
+		return fmt.Errorf("signature is empty")
+	}
 
-	secret, err := s.querier.GetRepoSecret(ctx, sqlc.GetRepoSecretParams{
-		UserID:       userId,
-		GithubRepoID: githubRepoId,
-	})
-	if err != nil {
-		return false, fmt.Errorf("failed to fetch webhook secret: %w", err)
+	if secret == "" {
+		return fmt.Errorf("webhook secret is empty")
 	}
-	if xHubSignature == "" {
-		return false, fmt.Errorf("X-Hub-Signature header is missing")
-	}
-	if !secret.Valid || secret.String == "" {
-		return false, fmt.Errorf("webhook secret not found for userId: %d, githubRepoId: %d", userId, githubRepoId)
-	}
-	mac := hmac.New(sha256.New, []byte(secret.String))
+
+	mac := hmac.New(sha256.New, []byte(secret))
 	mac.Write(payload)
+
 	expected := "sha256=" + hex.EncodeToString(mac.Sum(nil))
 
-	hmacCheck := hmac.Equal([]byte(expected), []byte(xHubSignature))
-	if !hmacCheck {
-		return false, fmt.Errorf("invalid signature: expected %s, got %s", expected, xHubSignature)
+	if !hmac.Equal([]byte(expected), []byte(signature)) {
+		return fmt.Errorf("invalid signature")
 	}
-	return true, nil
+
+	return nil
+}
+
+func (s *WebhookService) CheckSignature(
+	ctx context.Context,
+	userID int64,
+	githubRepoID int64,
+	signature string,
+	payload []byte,
+) error {
+
+	secret, err := s.querier.GetRepoSecret(ctx, sqlc.GetRepoSecretParams{
+		UserID:       userID,
+		GithubRepoID: githubRepoID,
+	})
+	if err != nil {
+		return fmt.Errorf("get repository secret: %w", err)
+	}
+
+	if !secret.Valid || secret.String == "" {
+		return fmt.Errorf("repository secret is not set: %w", err)
+	}
+
+	return VerifySignature(
+		secret.String,
+		payload,
+		signature,
+	)
+}
+
+func (s *WebhookService) GetUserAndRepoIdByFullName(
+	ctx context.Context,
+	fullName string,
+) (int64, int64, error) {
+
+	repo, err := s.querier.GetRepositoryByFullName(ctx, fullName)
+	if err != nil {
+		return 0, 0, fmt.Errorf("get repository by full name: %w", err)
+	}
+
+	return repo.UserID, repo.GithubRepoID, nil
 }

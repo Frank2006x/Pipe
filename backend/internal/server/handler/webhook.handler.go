@@ -35,15 +35,16 @@ func (h *WebhookHandler) GitHubWebhook(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "Invalid payload")
 	}
 	xHubSignature := c.Get("X-Hub-Signature-256")
-	ok, err := h.webhookService.CheckSignature(c.Context(), 0, 0, xHubSignature, c.Body())
+	userId, repoId, err := h.webhookService.GetUserAndRepoIdByFullName(c.Context(), payload.Repository.FullName)
+	if err != nil {
+		log.Errorf("Error fetching user and repo ID: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to fetch user and repo ID")
+	}
+	err = h.webhookService.CheckSignature(c.Context(), userId, repoId, xHubSignature, c.Body())
 	if err != nil {
 		log.Errorf("Error checking webhook signature: %v", err)
 		return fiber.NewError(fiber.StatusUnauthorized, "Invalid signature")
 	}
-	if !ok {
-		return fiber.NewError(fiber.StatusUnauthorized, "Invalid signature")
-	}
-
 	log.Infof(
 		"GitHub webhook | event=%s delivery=%s repo=%s ref=%s commit=%s",
 		event,
