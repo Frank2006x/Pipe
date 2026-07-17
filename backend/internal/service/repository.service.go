@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 var ErrRepoAlreadyExists = errors.New("repository has already been imported")
@@ -17,12 +18,14 @@ var ErrRepoNotFound = errors.New("repository not found")
 type RepositoryService struct {
 	queries       *sqlc.Queries
 	githubService *GithubService
+	db            *pgxpool.Pool
 }
 
-func NewRepositoryService(queries *sqlc.Queries, githubService *GithubService) *RepositoryService {
+func NewRepositoryService(queries *sqlc.Queries, githubService *GithubService, db *pgxpool.Pool) *RepositoryService {
 	return &RepositoryService{
 		queries:       queries,
 		githubService: githubService,
+		db:            db,
 	}
 }
 
@@ -40,8 +43,15 @@ func (s *RepositoryService) ImportRepository(ctx context.Context, userId int64, 
 	if err != nil {
 		return sqlc.Repository{}, fmt.Errorf("failed to get repository from GitHub: %w", err)
 	}
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return sqlc.Repository{}, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
 
-	exist, err := s.queries.ExistsRepository(ctx, sqlc.ExistsRepositoryParams{
+	qtx := s.queries.WithTx(tx)
+
+	exist, err := qtx.ExistsRepository(ctx, sqlc.ExistsRepositoryParams{
 		UserID:   userId,
 		FullName: githubRepo.FullName,
 	})
@@ -59,22 +69,27 @@ func (s *RepositoryService) ImportRepository(ctx context.Context, userId int64, 
 	}
 	githubRepoParams := mapper.MapGitHubRepository(userId, githubRepo)
 
-	newRepository, err := s.queries.CreateRepository(ctx, githubRepoParams)
+	_, err = qtx.CreateRepository(ctx, githubRepoParams)
+
 	if err != nil {
 		return sqlc.Repository{}, fmt.Errorf("failed to create repository: %w", err)
 	}
 
-	newRepository, err = s.UpdateWebhookInfo(
-		ctx,
-		userId,
-		githubRepo.ID,
-		webhook.ID,
-		secret,
-	)
+	newRepository, err := qtx.UpdateWebhookInfo(ctx, sqlc.UpdateWebhookInfoParams{
+		UserID:        userId,
+		GithubRepoID:  githubRepo.ID,
+		WebhookID:     pgtype.Int8{Int64: webhook.ID, Valid: true},
+		WebhookSecret: pgtype.Text{String: secret, Valid: true},
+		IsActive:      true,
+	})
+
 	if err != nil {
 		return sqlc.Repository{}, fmt.Errorf("failed to update webhook info: %w", err)
 	}
 
+	if err := tx.Commit(ctx); err != nil {
+		return sqlc.Repository{}, fmt.Errorf("failed to commit transaction: %w", err)
+	}
 	return newRepository, nil
 }
 

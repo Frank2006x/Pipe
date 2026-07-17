@@ -43,7 +43,7 @@ func main() {
 	app.Use(logger.New())
 	app.Use(middleware.RequestIDMiddleware())
 
-	router.RepositoryRouter(app, queries, githubService, jwtMaker)
+	router.RepositoryRouter(app, queries, githubService, jwtMaker, pool)
 	router.AuthRouter(app, queries, githubClient, jwtMaker)
 	router.GithubRouter(app, githubService, jwtMaker)
 	router.WebhookRouter(app, queries)
