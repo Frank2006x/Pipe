@@ -2,12 +2,12 @@ package main
 
 import (
 	"Frank2006x/Pipe/db/sqlc"
-	"Frank2006x/Pipe/internal/server/middleware"
-	"Frank2006x/Pipe/internal/server/router"
 	"Frank2006x/Pipe/internal/auth"
 	"Frank2006x/Pipe/internal/config"
 	"Frank2006x/Pipe/internal/db"
 	"Frank2006x/Pipe/internal/github"
+	"Frank2006x/Pipe/internal/server/middleware"
+	"Frank2006x/Pipe/internal/server/router"
 	"Frank2006x/Pipe/internal/service"
 	"context"
 	"errors"
@@ -46,7 +46,7 @@ func main() {
 	router.RepositoryRouter(app, queries, githubService, jwtMaker)
 	router.AuthRouter(app, queries, githubClient, jwtMaker)
 	router.GithubRouter(app, githubService, jwtMaker)
-	router.WebhookRouter(app)
+	router.WebhookRouter(app, queries)
 	app.Get("/ping", func(c fiber.Ctx) error {
 		return c.SendStatus(http.StatusOK)
 	})
