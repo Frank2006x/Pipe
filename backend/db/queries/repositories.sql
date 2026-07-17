@@ -82,3 +82,7 @@ SELECT EXISTS (
     WHERE user_id = $1
       AND full_name = $2
 );
+
+-- name: GetRepoSecret :one
+SELECT webhook_secret FROM repositories
+WHERE user_id = $1 AND github_repo_id = $2;

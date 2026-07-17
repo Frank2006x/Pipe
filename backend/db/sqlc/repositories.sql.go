@@ -121,6 +121,23 @@ func (q *Queries) ExistsRepository(ctx context.Context, arg ExistsRepositoryPara
 	return exists, err
 }
 
+const getRepoSecret = `-- name: GetRepoSecret :one
+SELECT webhook_secret FROM repositories
+WHERE user_id = $1 AND github_repo_id = $2
+`
+
+type GetRepoSecretParams struct {
+	UserID       int64 `json:"user_id"`
+	GithubRepoID int64 `json:"github_repo_id"`
+}
+
+func (q *Queries) GetRepoSecret(ctx context.Context, arg GetRepoSecretParams) (pgtype.Text, error) {
+	row := q.db.QueryRow(ctx, getRepoSecret, arg.UserID, arg.GithubRepoID)
+	var webhook_secret pgtype.Text
+	err := row.Scan(&webhook_secret)
+	return webhook_secret, err
+}
+
 const getRepositoryByFullName = `-- name: GetRepositoryByFullName :one
 SELECT id, user_id, github_repo_id, name, full_name, html_url, default_branch, private, webhook_id, is_active, created_at, updated_at, owner, description, clone_url, webhook_secret FROM repositories 
 WHERE full_name = $1

@@ -17,6 +17,7 @@ type Querier interface {
 	DeleteRepository(ctx context.Context, arg DeleteRepositoryParams) (int64, error)
 	ExistsRepository(ctx context.Context, arg ExistsRepositoryParams) (bool, error)
 	GetGithubToken(ctx context.Context, userID int64) (string, error)
+	GetRepoSecret(ctx context.Context, arg GetRepoSecretParams) (pgtype.Text, error)
 	GetRepositoryByFullName(ctx context.Context, fullName string) (Repository, error)
 	GetRepositoryByGithubRepoID(ctx context.Context, githubRepoID int64) (Repository, error)
 	GetRepositoryById(ctx context.Context, arg GetRepositoryByIdParams) (Repository, error)
