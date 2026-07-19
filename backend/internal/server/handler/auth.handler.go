@@ -30,7 +30,9 @@ func (h *AuthHandler) GetRedirctLink(c fiber.Ctx) error {
 	// TODO:
 	// Save state somewhere (cookie or redis)
 
-	return c.Redirect().To(authURL)
+	return c.JSON(fiber.Map{
+		"url": authURL,
+	})
 }
 
 func (h *AuthHandler) Callback(c fiber.Ctx) error {
