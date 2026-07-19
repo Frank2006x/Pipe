@@ -1,4 +1,8 @@
-import React from "react";
+"use client";
+
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
+import axios from "axios";
 import Navbar from "@/components/Navbar";
 import { 
   GitPullRequest, 
@@ -16,6 +20,23 @@ import {
 } from "lucide-react";
 
 export default function Home() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const backendBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+        await axios.get(`${backendBaseUrl}/auth/me`, {
+          withCredentials: true,
+        });
+        setIsLoggedIn(true);
+      } catch (err) {
+        setIsLoggedIn(false);
+      }
+    };
+    checkAuth();
+  }, []);
+
   return (
     <div className="min-h-screen bg-background text-foreground font-sans antialiased relative">
       {/* Subtle Glowing Backdrop */}
@@ -48,9 +69,12 @@ export default function Home() {
           </p>
 
           <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
-            <button className="rounded-lg bg-primary px-8 py-3.5 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:opacity-90 hover:shadow-primary/30 hover:scale-[1.01]">
-              Connect Repository
-            </button>
+            <Link 
+              href={isLoggedIn ? "/home" : "/login"}
+              className="rounded-lg bg-primary px-8 py-3.5 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:opacity-90 hover:shadow-primary/30 hover:scale-[1.01] flex items-center justify-center"
+            >
+              {isLoggedIn ? "Go to Dashboard" : "Connect Repository"}
+            </Link>
             <a 
               href="#features"
               className="flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-8 py-3.5 text-base font-semibold text-foreground transition-all hover:bg-muted hover:border-muted-foreground/30"
