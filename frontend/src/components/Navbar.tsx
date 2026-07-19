@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { GitBranch, Menu, X, Sun, Moon } from "lucide-react";
 
 export default function Navbar() {
@@ -65,9 +66,9 @@ export default function Navbar() {
               {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </button>
 
-            <button className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-all hover:opacity-90">
+            <Link href="/login" className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-all hover:opacity-90">
               Get Started
-            </button>
+            </Link>
           </div>
 
           {/* Mobile Menu Button & Toggle */}
@@ -107,9 +108,9 @@ export default function Navbar() {
             Security
           </a>
           <div className="flex flex-col gap-2 pt-2">
-            <button className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90">
+            <Link href="/login" className="w-full text-center rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90">
               Get Started
-            </button>
+            </Link>
           </div>
         </div>
       )}
