@@ -24,7 +24,7 @@ function CallbackHandler() {
         await axios.get(`${backendBaseUrl}/auth/github/callback?code=${code}`, {
           withCredentials: true,
         });
-        
+
         // Authenticated successfully. Redirect back to homepage
         router.push("/");
       } catch (err: any) {
@@ -44,8 +44,8 @@ function CallbackHandler() {
         </div>
         <h2 className="text-2xl font-bold text-foreground">Authentication Error</h2>
         <p className="text-sm text-muted-foreground">{error}</p>
-        <a 
-          href="/login" 
+        <a
+          href="/login"
           className="inline-block w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:opacity-90"
         >
           Back to Login

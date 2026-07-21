@@ -51,6 +51,19 @@ export default function Navbar() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      const backendBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+      await axios.get(`${backendBaseUrl}/auth/logout`, {
+        withCredentials: true,
+      });
+      setIsLoggedIn(false);
+      window.location.href = "/";
+    } catch (err) {
+      console.error("Logout failed:", err);
+    }
+  };
+
   return (
     <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -92,6 +105,15 @@ export default function Navbar() {
             <Link href={isLoggedIn ? "/home" : "/login"} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-all hover:opacity-90">
               {isLoggedIn ? "Dashboard" : "Get Started"}
             </Link>
+
+            {isLoggedIn && (
+              <button
+                onClick={handleLogout}
+                className="rounded-lg border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground transition-all hover:bg-muted"
+              >
+                Logout
+              </button>
+            )}
           </div>
 
           {/* Mobile Menu Button & Toggle */}
@@ -143,6 +165,17 @@ export default function Navbar() {
             <Link href={isLoggedIn ? "/home" : "/login"} className="w-full text-center rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90">
               {isLoggedIn ? "Dashboard" : "Get Started"}
             </Link>
+            {isLoggedIn && (
+              <button
+                onClick={() => {
+                  handleLogout();
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full text-center rounded-lg border border-border bg-background py-2.5 text-sm font-semibold text-foreground hover:bg-muted"
+              >
+                Logout
+              </button>
+            )}
           </div>
         </div>
       )}

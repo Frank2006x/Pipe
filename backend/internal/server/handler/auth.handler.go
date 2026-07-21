@@ -50,8 +50,8 @@ func (h *AuthHandler) Callback(c fiber.Ctx) error {
 		Name:     "jwt_token",
 		Value:    token,
 		HTTPOnly: true,
-		Secure:   false, // true in production
-		SameSite: "Lax",
+		Secure:   true,   // MUST be true for SameSite: None
+		SameSite: "None", // Required for cross-origin/cross-port cookie transfers
 		Path:     "/",
 		MaxAge:   60 * 60 * 24 * 3,
 	})
@@ -77,8 +77,10 @@ func (h *AuthHandler) Logout(c fiber.Ctx) error {
 		Name:     "jwt_token",
 		Value:    "",
 		HTTPOnly: true,
-		Secure:   false, // true in production
-		SameSite: "Lax",
+		Secure:   true,   // MUST be true for SameSite: None
+		SameSite: "None", // Required for cross-origin/cross-port cookie transfers
+		Path:     "/",
+		MaxAge:   -1,
 	})
 
 	return c.JSON(fiber.Map{
