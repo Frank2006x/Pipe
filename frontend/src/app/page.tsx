@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import Link from "next/link";
-import axios from "axios";
 import Navbar from "@/components/Navbar";
+import { useAuth } from "@/context/AuthContext";
 import { 
   GitPullRequest, 
   GitBranch,
@@ -20,22 +20,7 @@ import {
 } from "lucide-react";
 
 export default function Home() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const backendBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-        await axios.get(`${backendBaseUrl}/auth/me`, {
-          withCredentials: true,
-        });
-        setIsLoggedIn(true);
-      } catch (err) {
-        setIsLoggedIn(false);
-      }
-    };
-    checkAuth();
-  }, []);
+  const { isLoggedIn } = useAuth();
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans antialiased relative">

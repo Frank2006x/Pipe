@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import axios from "axios";
 import { GitBranch, Menu, X, Sun, Moon } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">("light");
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { isLoggedIn, logout } = useAuth();
 
   // Sync theme with DOM and localStorage
   useEffect(() => {
@@ -24,22 +24,6 @@ export default function Navbar() {
     }
   }, []);
 
-  // Check if user is authenticated
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const backendBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-        await axios.get(`${backendBaseUrl}/auth/me`, {
-          withCredentials: true,
-        });
-        setIsLoggedIn(true);
-      } catch (err) {
-        setIsLoggedIn(false);
-      }
-    };
-    checkAuth();
-  }, []);
-
   const toggleTheme = () => {
     const nextTheme = theme === "light" ? "dark" : "light";
     setTheme(nextTheme);
@@ -48,19 +32,6 @@ export default function Navbar() {
       document.documentElement.classList.add("dark");
     } else {
       document.documentElement.classList.remove("dark");
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      const backendBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-      await axios.get(`${backendBaseUrl}/auth/logout`, {
-        withCredentials: true,
-      });
-      setIsLoggedIn(false);
-      window.location.href = "/";
-    } catch (err) {
-      console.error("Logout failed:", err);
     }
   };
 
@@ -108,7 +79,7 @@ export default function Navbar() {
 
             {isLoggedIn && (
               <button
-                onClick={handleLogout}
+                onClick={logout}
                 className="rounded-lg border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground transition-all hover:bg-muted"
               >
                 Logout
@@ -168,7 +139,7 @@ export default function Navbar() {
             {isLoggedIn && (
               <button
                 onClick={() => {
-                  handleLogout();
+                  logout();
                   setMobileMenuOpen(false);
                 }}
                 className="w-full text-center rounded-lg border border-border bg-background py-2.5 text-sm font-semibold text-foreground hover:bg-muted"
