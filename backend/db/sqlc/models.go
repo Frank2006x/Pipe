@@ -154,12 +154,15 @@ type GithubToken struct {
 }
 
 type Job struct {
-	ID          int64              `json:"id"`
-	PipelineID  int64              `json:"pipeline_id"`
-	Name        string             `json:"name"`
-	Status      JobStatus          `json:"status"`
-	StartedAt   pgtype.Timestamptz `json:"started_at"`
-	CompletedAt pgtype.Timestamptz `json:"completed_at"`
+	ID         int64              `json:"id"`
+	PipelineID int64              `json:"pipeline_id"`
+	Name       string             `json:"name"`
+	Status     JobStatus          `json:"status"`
+	StartedAt  pgtype.Timestamptz `json:"started_at"`
+	FinishedAt pgtype.Timestamptz `json:"finished_at"`
+	OrderIndex int32              `json:"order_index"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
 }
 
 type Log struct {
@@ -171,16 +174,19 @@ type Log struct {
 }
 
 type Pipeline struct {
-	ID            int64              `json:"id"`
-	RepositoryID  int64              `json:"repository_id"`
-	CommitSha     string             `json:"commit_sha"`
-	CommitMessage pgtype.Text        `json:"commit_message"`
-	Branch        string             `json:"branch"`
-	EventType     GithubEvent        `json:"event_type"`
-	Status        PipelineStatus     `json:"status"`
-	CreatedAt     pgtype.Timestamptz `json:"created_at"`
-	StartedAt     pgtype.Timestamptz `json:"started_at"`
-	CompletedAt   pgtype.Timestamptz `json:"completed_at"`
+	ID               int64              `json:"id"`
+	RepositoryID     int64              `json:"repository_id"`
+	CommitSha        string             `json:"commit_sha"`
+	CommitMessage    pgtype.Text        `json:"commit_message"`
+	Branch           string             `json:"branch"`
+	EventType        GithubEvent        `json:"event_type"`
+	Status           PipelineStatus     `json:"status"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	StartedAt        pgtype.Timestamptz `json:"started_at"`
+	FinishedAt       pgtype.Timestamptz `json:"finished_at"`
+	GithubDeliveryID pgtype.Text        `json:"github_delivery_id"`
+	TriggerUsername  pgtype.Text        `json:"trigger_username"`
+	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
 }
 
 type Repository struct {
