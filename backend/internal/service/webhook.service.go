@@ -67,15 +67,13 @@ func (s *WebhookService) CheckSignature(
 	)
 }
 
-func (s *WebhookService) GetUserAndRepoIdByFullName(
+func (s *WebhookService) GetRepositoryByFullName(
 	ctx context.Context,
 	fullName string,
-) (int64, int64, error) {
-
+) (sqlc.Repository, error) {
 	repo, err := s.querier.GetRepositoryByFullName(ctx, fullName)
 	if err != nil {
-		return 0, 0, fmt.Errorf("get repository by full name: %w", err)
+		return sqlc.Repository{}, fmt.Errorf("get repository by full name: %w", err)
 	}
-
-	return repo.UserID, repo.GithubRepoID, nil
+	return repo, nil
 }

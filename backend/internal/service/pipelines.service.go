@@ -77,7 +77,7 @@ func (s *PipelineService) CreatePipeline(ctx context.Context, input *CreatePipel
 		return nil, err
 	}
 
-	err = s.createDefaultJobs(ctx, pipeline.ID)
+	err = s.createDefaultJobs(ctx, qtx, pipeline.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -133,8 +133,8 @@ type createJobInput struct {
 	orderIndex int32
 }
 
-func (s *PipelineService) createJob(ctx context.Context, pipelineID int64, input *createJobInput) (*sqlc.Job, error) {
-	job, err := s.queries.CreateJob(ctx, sqlc.CreateJobParams{
+func (s *PipelineService) createJob(ctx context.Context, queries *sqlc.Queries, pipelineID int64, input *createJobInput) (*sqlc.Job, error) {
+	job, err := queries.CreateJob(ctx, sqlc.CreateJobParams{
 		PipelineID: pipelineID,
 		Name:       input.name,
 		Status:     input.status,
@@ -146,7 +146,7 @@ func (s *PipelineService) createJob(ctx context.Context, pipelineID int64, input
 	return &job, nil
 }
 
-func (s *PipelineService) createDefaultJobs(ctx context.Context, pipelineID int64) error {
+func (s *PipelineService) createDefaultJobs(ctx context.Context, queries *sqlc.Queries, pipelineID int64) error {
 	jobs := []createJobInput{
 		{
 			name:       "Build",
@@ -166,7 +166,7 @@ func (s *PipelineService) createDefaultJobs(ctx context.Context, pipelineID int6
 	}
 
 	for _, job := range jobs {
-		_, err := s.createJob(ctx, pipelineID, &job)
+		_, err := s.createJob(ctx, queries, pipelineID, &job)
 		if err != nil {
 			return err
 		}

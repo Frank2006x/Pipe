@@ -50,20 +50,20 @@ func (h *WebhookHandler) GitHubWebhook(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "Invalid payload")
 	}
 
-	userId, repoId, err := h.webhookService.GetUserAndRepoIdByFullName(c.Context(), payload.Repository.FullName)
+	repo, err := h.webhookService.GetRepositoryByFullName(c.Context(), payload.Repository.FullName)
 	if err != nil {
-		log.Errorf("Error fetching user and repo ID: %v", err)
-		return fiber.NewError(fiber.StatusInternalServerError, "Failed to fetch user and repo ID")
+		log.Errorf("Error fetching repository: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to fetch repository")
 	}
 
-	err = h.webhookService.CheckSignature(c.Context(), userId, repoId, xHubSignature, c.Body())
+	err = h.webhookService.CheckSignature(c.Context(), repo.UserID, repo.GithubRepoID, xHubSignature, c.Body())
 	if err != nil {
 		log.Errorf("Error checking webhook signature: %v", err)
 		return fiber.NewError(fiber.StatusUnauthorized, "Invalid signature")
 	}
 
 	_, err = h.pipelineService.CreatePipeline(c.Context(), &service.CreatePipelineInput{
-		RepositoryID:    repoId,
+		RepositoryID:    repo.ID,
 		DeliveryID:      delivery,
 		CommitSHA:       payload.After,
 		CommitMessage:   payload.HeadCommit.Message,
