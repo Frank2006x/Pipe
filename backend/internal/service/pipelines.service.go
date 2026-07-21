@@ -106,6 +106,14 @@ func (s *PipelineService) ListRepositoryPipelines(ctx context.Context, repositor
 	return pipelines, nil
 }
 
+func (s *PipelineService) ListJobsByPipeline(ctx context.Context, pipelineId int64) ([]sqlc.Job, error) {
+	jobs, err := s.queries.ListJobsByPipeline(ctx, pipelineId)
+	if err != nil {
+		return nil, err
+	}
+	return jobs, nil
+}
+
 func (s *PipelineService) UpdatePipelineStatus(ctx context.Context, id int64, status sqlc.PipelineStatus, startedAt *time.Time, finishedAt *time.Time) (*sqlc.Pipeline, error) {
 	pipeline, err := s.queries.UpdatePipelineStatus(ctx, sqlc.UpdatePipelineStatusParams{
 		ID:         id,

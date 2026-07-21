@@ -55,6 +55,7 @@ func main() {
 	router.AuthRouter(app, queries, githubClient, jwtMaker)
 	router.GithubRouter(app, githubService, jwtMaker)
 	router.WebhookRouter(app, queries, pipelineService)
+	router.PipelineRouter(app, pipelineService, jwtMaker)
 	app.Get("/ping", func(c fiber.Ctx) error {
 		return c.SendStatus(http.StatusOK)
 	})
