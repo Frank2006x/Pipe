@@ -15,10 +15,11 @@ const createJob = `-- name: CreateJob :one
 INSERT INTO jobs (
     pipeline_id,
     status,
-    name
+    name,
+    order_index
 )
 VALUES (
-    $1,$2,$3
+    $1,$2,$3,$4
 )
 RETURNING id, pipeline_id, name, status, started_at, finished_at, order_index, created_at, updated_at
 `
@@ -27,10 +28,16 @@ type CreateJobParams struct {
 	PipelineID int64     `json:"pipeline_id"`
 	Status     JobStatus `json:"status"`
 	Name       string    `json:"name"`
+	OrderIndex int32     `json:"order_index"`
 }
 
 func (q *Queries) CreateJob(ctx context.Context, arg CreateJobParams) (Job, error) {
-	row := q.db.QueryRow(ctx, createJob, arg.PipelineID, arg.Status, arg.Name)
+	row := q.db.QueryRow(ctx, createJob,
+		arg.PipelineID,
+		arg.Status,
+		arg.Name,
+		arg.OrderIndex,
+	)
 	var i Job
 	err := row.Scan(
 		&i.ID,

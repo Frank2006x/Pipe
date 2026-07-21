@@ -2,7 +2,7 @@ package handler
 
 import (
 	"Frank2006x/Pipe/internal/service"
-	"Frank2006x/Pipe/internal/util/random"
+	"Frank2006x/Pipe/internal/util"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/log"
@@ -20,7 +20,7 @@ func NewAuthHandler(authService *service.AuthService) *AuthHandler {
 
 func (h *AuthHandler) GetRedirctLink(c fiber.Ctx) error {
 
-	state := random.GenerateRandomState()
+	state := util.GenerateRandomState()
 
 	authURL, err := h.AuthService.GetAuthURL(state)
 	if err != nil {

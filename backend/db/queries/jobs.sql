@@ -2,10 +2,11 @@
 INSERT INTO jobs (
     pipeline_id,
     status,
-    name
+    name,
+    order_index
 )
 VALUES (
-    $1,$2,$3
+    $1,$2,$3,$4
 )
 RETURNING *;
 

@@ -3,7 +3,7 @@ package service
 import (
 	"Frank2006x/Pipe/db/sqlc"
 	"Frank2006x/Pipe/internal/mapper"
-	"Frank2006x/Pipe/internal/util/random"
+	"Frank2006x/Pipe/internal/util"
 	"context"
 	"errors"
 	"fmt"
@@ -62,7 +62,7 @@ func (s *RepositoryService) ImportRepository(ctx context.Context, userId int64, 
 		return sqlc.Repository{}, ErrRepoAlreadyExists
 	}
 
-	secret := random.GenerateRandomSecret()
+	secret := util.GenerateRandomSecret()
 	webhook, err := s.githubService.CreateWebhook(ctx, userId, owner, repo, secret)
 	if err != nil {
 		return sqlc.Repository{}, fmt.Errorf("failed to create webhook: %w", err)
