@@ -40,6 +40,7 @@ func main() {
 	githubClient := github.NewClient(cfg)
 	jwtMaker := auth.NewJwtMaker(cfg.JWT_SECRET)
 	githubService := service.NewGithubService(githubClient, queries, &cfg)
+	pipelineService := service.NewPipelineService(queries, pool)
 	app := fiber.New()
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:3000"},
@@ -53,7 +54,7 @@ func main() {
 	router.RepositoryRouter(app, queries, githubService, jwtMaker, pool)
 	router.AuthRouter(app, queries, githubClient, jwtMaker)
 	router.GithubRouter(app, githubService, jwtMaker)
-	router.WebhookRouter(app, queries)
+	router.WebhookRouter(app, queries, pipelineService)
 	app.Get("/ping", func(c fiber.Ctx) error {
 		return c.SendStatus(http.StatusOK)
 	})

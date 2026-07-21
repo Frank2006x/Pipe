@@ -8,8 +8,8 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-func WebhookRouter(app *fiber.App, querier *sqlc.Queries) {
+func WebhookRouter(app *fiber.App, querier *sqlc.Queries, pipelineService *service.PipelineService) {
 	webhookService := service.NewWebhookService(querier)
-	webhookHandler := handler.NewWebhookHandler(webhookService)
+	webhookHandler := handler.NewWebhookHandler(webhookService, pipelineService)
 	app.Post("/webhooks/github", webhookHandler.GitHubWebhook)
 }
