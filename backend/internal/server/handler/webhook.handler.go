@@ -36,6 +36,11 @@ type GitHubWebhookPayload struct {
 
 func (h *WebhookHandler) GitHubWebhook(c fiber.Ctx) error {
 	event := c.Get("X-GitHub-Event")
+	if event == "ping" {
+		log.Info("GitHub webhook ping received successfully")
+		return c.SendStatus(fiber.StatusOK)
+	}
+
 	delivery := c.Get("X-GitHub-Delivery")
 	xHubSignature := c.Get("X-Hub-Signature-256")
 
