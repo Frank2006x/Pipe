@@ -17,5 +17,13 @@ services:
     ports:
       - "6379:6379"
 
+  rabbitmq:
+    image: rabbitmq:4.3.3-management
+    container_name: cicdrabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    restart: unless-stopped
+
 volumes:
   postgres_data:
