@@ -8,7 +8,8 @@ type Config struct {
 	GITHUB_CLIENT_SECRET string `mapstructure:"GITHUB_CLIENT_SECRET"`
 	GITHUB_CALLBACK_URL  string `mapstructure:"GITHUB_CALLBACK_URL"`
 	JWT_SECRET           string `mapstructure:"JWT_SECRET"`
-	WEBHOOK_BASE_URL	 string `mapstructure:"WEBHOOK_BASE_URL"`
+	WEBHOOK_BASE_URL     string `mapstructure:"WEBHOOK_BASE_URL"`
+	RABBITMQ_URL         string `mapstructure:"RABBITMQ_URL"`
 }
 
 func LoadConfig(path string) (Config, error) {

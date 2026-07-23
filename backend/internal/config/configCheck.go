@@ -25,6 +25,11 @@ func CheckConfig(config Config) error {
 	if config.JWT_SECRET == "" {
 		return &ConfigError{Field: "JWT_SECRET", Message: "JWT_SECRET is required"}
 	}
-	
+	if config.RABBITMQ_URL == "" {
+		return &ConfigError{Field: "RABBITMQ_URL", Message: "RABBITMQ_URL is required"}
+	}
+	if config.WEBHOOK_BASE_URL == "" {
+		return &ConfigError{Field: "WEBHOOK_BASE_URL", Message: "WEBHOOK_BASE_URL is required"}
+	}
 	return nil
 }

@@ -6,6 +6,7 @@ import (
 	"Frank2006x/Pipe/internal/config"
 	"Frank2006x/Pipe/internal/db"
 	"Frank2006x/Pipe/internal/github"
+	"Frank2006x/Pipe/internal/queue"
 	"Frank2006x/Pipe/internal/server/middleware"
 	"Frank2006x/Pipe/internal/server/router"
 	"Frank2006x/Pipe/internal/service"
@@ -36,11 +37,16 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	rabbitmq, err := queue.NewRabbitmq(cfg.RABBITMQ_URL)
+	if err != nil {
+		panic(err)
+	}
+	defer rabbitmq.Close()
 	queries := sqlc.New(pool)
 	githubClient := github.NewClient(cfg)
 	jwtMaker := auth.NewJwtMaker(cfg.JWT_SECRET)
 	githubService := service.NewGithubService(githubClient, queries, &cfg)
-	pipelineService := service.NewPipelineService(queries, pool)
+	pipelineService := service.NewPipelineService(queries, pool, rabbitmq)
 	app := fiber.New()
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:3000"},

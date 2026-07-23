@@ -2,6 +2,7 @@ package service
 
 import (
 	"Frank2006x/Pipe/db/sqlc"
+	"Frank2006x/Pipe/internal/queue"
 	"Frank2006x/Pipe/internal/util"
 	"context"
 	"errors"
@@ -30,12 +31,14 @@ func isValidEventType(event sqlc.GithubEvent) bool {
 type PipelineService struct {
 	queries *sqlc.Queries
 	db      *pgxpool.Pool
+	queue   queue.Queue
 }
 
-func NewPipelineService(queries *sqlc.Queries, db *pgxpool.Pool) *PipelineService {
+func NewPipelineService(queries *sqlc.Queries, db *pgxpool.Pool, queue queue.Queue) *PipelineService {
 	return &PipelineService{
 		queries: queries,
 		db:      db,
+		queue:   queue,
 	}
 }
 
@@ -86,6 +89,7 @@ func (s *PipelineService) CreatePipeline(ctx context.Context, input *CreatePipel
 		return nil, err
 	}
 
+	s.queue.PublishPipeline(ctx, pipeline.ID)
 	return &pipeline, nil
 }
 
