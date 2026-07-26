@@ -71,6 +71,58 @@ func (r *Rabbitmq) PublishPipeline(ctx context.Context, pipelineId int64) error 
 	return nil
 }
 
+func (r *Rabbitmq) ConsumerPipeline(
+	ctx context.Context,
+	handler func(context.Context, PipelineMessage) error,
+) error {
+
+	err := r.channel.Qos(1, 0, false)
+	if err != nil {
+		return err
+	}
+	message, err := r.channel.Consume(
+		r.queue.Name,
+		"",
+		false,
+		false,
+		false,
+		false,
+		nil,
+	)
+
+	if err != nil {
+		log.Printf("Error while consuming pipeline: %v", err)
+		return err
+	}
+
+	for msg := range message {
+		var pipelineMsg PipelineMessage
+		if err := json.Unmarshal(msg.Body, &pipelineMsg); err != nil {
+			err = msg.Nack(false, false)
+			if err != nil {
+				log.Printf("Error while nacking pipeline: %v", err)
+			}
+			log.Printf("Error while unmarshalling pipeline: %v", err)
+			continue
+		}
+		if err := handler(ctx, pipelineMsg); err != nil {
+			err = msg.Nack(false, true)
+			if err != nil {
+				log.Printf("Error while nacking pipeline: %v", err)
+			}
+			log.Printf("Error while handling pipeline: %v", err)
+			continue
+		}
+		err = msg.Ack(false)
+		if err != nil {
+			log.Printf("Error while acking pipeline: %v", err)
+			continue
+		}
+		log.Printf("Pipeline %d consumed successfully", pipelineMsg.PipelineId)
+	}
+	return nil
+}
+
 func (r *Rabbitmq) Close() error {
 	if r.channel != nil {
 		r.channel.Close()
