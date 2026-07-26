@@ -118,7 +118,7 @@ func (s *PipelineService) ListJobsByPipeline(ctx context.Context, pipelineId int
 	return jobs, nil
 }
 
-func (s *PipelineService) UpdatePipelineStatus(ctx context.Context, id int64, status sqlc.PipelineStatus, startedAt *time.Time, finishedAt *time.Time) (*sqlc.Pipeline, error) {
+func (s *PipelineService) UpdatePipelineStatus(ctx context.Context, id int64, status sqlc.PipelineStatus, startedAt, finishedAt *time.Time) (*sqlc.Pipeline, error) {
 	pipeline, err := s.queries.UpdatePipelineStatus(ctx, sqlc.UpdatePipelineStatusParams{
 		ID:         id,
 		Status:     status,
@@ -177,4 +177,17 @@ func (s *PipelineService) createDefaultJobs(ctx context.Context, queries *sqlc.Q
 	}
 
 	return nil
+}
+
+func (s *PipelineService) UpdateJobStatus(ctx context.Context, id int64, status sqlc.JobStatus, startedAt, finishedAt *time.Time) (*sqlc.Job, error) {
+	job, err := s.queries.UpdateJobStatus(ctx, sqlc.UpdateJobStatusParams{
+		ID:         id,
+		Status:     status,
+		StartedAt:  util.TimestamptzOrNull(startedAt),
+		FinishedAt: util.TimestamptzOrNull(finishedAt),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &job, nil
 }
