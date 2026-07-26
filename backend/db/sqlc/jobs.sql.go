@@ -92,8 +92,8 @@ const updateJobStatus = `-- name: UpdateJobStatus :one
 UPDATE jobs
 SET
     status = $1,
-    started_at = $2,
-    finished_at = $3,
+    started_at = COALESCE($2, started_at),
+    finished_at = COALESCE($3, finished_at),
     updated_at = NOW()
 WHERE id = $4
 RETURNING id, pipeline_id, name, status, started_at, finished_at, order_index, created_at, updated_at

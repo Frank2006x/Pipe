@@ -136,8 +136,8 @@ const updatePipelineStatus = `-- name: UpdatePipelineStatus :one
 UPDATE pipelines
 SET
     status = $1,
-    started_at = $2,    
-    finished_at = $3,
+    started_at = COALESCE($2, started_at),
+    finished_at = COALESCE($3, finished_at),
     updated_at = NOW()
 WHERE id = $4
 RETURNING id, repository_id, commit_sha, commit_message, branch, event_type, status, created_at, started_at, finished_at, github_delivery_id, trigger_username, updated_at
