@@ -94,32 +94,41 @@ func (r *Rabbitmq) ConsumerPipeline(
 		log.Printf("Error while consuming pipeline: %v", err)
 		return err
 	}
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case msg, ok := <-message:
+			if !ok {
+				return nil
+			}
+			var pipelineMsg PipelineMessage
+			if err := json.Unmarshal(msg.Body, &pipelineMsg); err != nil {
+				err = msg.Nack(false, false)
+				if err != nil {
+					log.Printf("Error while nacking pipeline: %v", err)
+				}
+				log.Printf("Error while unmarshalling pipeline: %v", err)
+				continue
+			}
+			if err := handler(ctx, pipelineMsg); err != nil {
+				err = msg.Nack(false, true)
+				if err != nil {
+					log.Printf("Error while nacking pipeline: %v", err)
+				}
+				log.Printf("Error while handling pipeline: %v", err)
+				continue
+			}
+			err = msg.Ack(false)
+			if err != nil {
+				log.Printf("Error while acking pipeline: %v", err)
+				continue
+			}
+			log.Printf("Pipeline %d consumed successfully", pipelineMsg.PipelineId)
 
-	for msg := range message {
-		var pipelineMsg PipelineMessage
-		if err := json.Unmarshal(msg.Body, &pipelineMsg); err != nil {
-			err = msg.Nack(false, false)
-			if err != nil {
-				log.Printf("Error while nacking pipeline: %v", err)
-			}
-			log.Printf("Error while unmarshalling pipeline: %v", err)
-			continue
 		}
-		if err := handler(ctx, pipelineMsg); err != nil {
-			err = msg.Nack(false, true)
-			if err != nil {
-				log.Printf("Error while nacking pipeline: %v", err)
-			}
-			log.Printf("Error while handling pipeline: %v", err)
-			continue
-		}
-		err = msg.Ack(false)
-		if err != nil {
-			log.Printf("Error while acking pipeline: %v", err)
-			continue
-		}
-		log.Printf("Pipeline %d consumed successfully", pipelineMsg.PipelineId)
 	}
+
 	return nil
 }
 

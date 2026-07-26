@@ -10,12 +10,14 @@ import (
 	"Frank2006x/Pipe/internal/server/middleware"
 	"Frank2006x/Pipe/internal/server/router"
 	"Frank2006x/Pipe/internal/service"
+	"Frank2006x/Pipe/internal/worker"
 	"context"
 	"errors"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -42,11 +44,16 @@ func main() {
 		panic(err)
 	}
 	defer rabbitmq.Close()
+
 	queries := sqlc.New(pool)
 	githubClient := github.NewClient(cfg)
 	jwtMaker := auth.NewJwtMaker(cfg.JWT_SECRET)
 	githubService := service.NewGithubService(githubClient, queries, &cfg)
 	pipelineService := service.NewPipelineService(queries, pool, rabbitmq)
+	appCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	worker := worker.NewPipelineWorker(rabbitmq, pipelineService)
+
 	app := fiber.New()
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:3000"},
@@ -54,6 +61,15 @@ func main() {
 		AllowMethods:     []string{"GET", "POST", "HEAD", "PUT", "DELETE", "PATCH", "OPTIONS"},
 		AllowCredentials: true,
 	}))
+
+	var workerWg sync.WaitGroup
+	workerWg.Add(1)
+	go func() {
+		defer workerWg.Done()
+		if err := worker.Start(appCtx); err != nil && !errors.Is(err, context.Canceled) {
+			log.Printf("[ERROR] Worker STOP completely: %v", err)
+		}
+	}()
 	app.Use(logger.New())
 	app.Use(middleware.RequestIDMiddleware())
 
@@ -72,15 +88,20 @@ func main() {
 	go func() {
 		log.Println("[INFO] Fiber web server starting up on port :8080...")
 		if err := app.Listen(":8080"); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("[FATAL] Web server crashed completely: %v", err)
+			log.Printf("[FATAL] Web server crashed completely: %v", err)
 		}
 	}()
 
 	<-shutdownChannel
 	log.Println("[INFO] Fiber web server shutting down...")
+	cancel() // Notify worker to stop consuming and executing
 
-	shutDownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+	log.Println("[INFO] Waiting for worker to finish execution...")
+	workerWg.Wait()
+	log.Println("[SUCCESS] Worker shutdown complete.")
+
+	shutDownCtx, cancelTimeout := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancelTimeout()
 
 	log.Println("[INFO] Step 1/2: Draining and shutting down incoming HTTP traffic pools...")
 	if err := app.ShutdownWithContext(shutDownCtx); err != nil {
