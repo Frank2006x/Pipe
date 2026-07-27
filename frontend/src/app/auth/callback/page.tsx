@@ -12,6 +12,7 @@ function CallbackHandler() {
 
   useEffect(() => {
     const code = searchParams.get("code");
+    const state = searchParams.get("state");
     if (!code) {
       setError("No authorization code provided from GitHub.");
       return;
@@ -21,7 +22,7 @@ function CallbackHandler() {
       try {
         const backendBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
         // Invoke backend callback via Axios in the background
-        await axios.get(`${backendBaseUrl}/auth/github/callback?code=${code}`, {
+        await axios.get(`${backendBaseUrl}/auth/github/callback?code=${code}&state=${state || ""}`, {
           withCredentials: true,
         });
 

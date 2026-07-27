@@ -27,8 +27,16 @@ func (h *AuthHandler) GetRedirctLink(c fiber.Ctx) error {
 		log.Infof("Failed to get GitHub auth URL: %v", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "Failed to get GitHub auth URL")
 	}
-	// TODO:
-	// Save state somewhere (cookie or redis)
+
+	c.Cookie(&fiber.Cookie{
+		Name:     "oauth_state",
+		Value:    state,
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "None",
+		Path:     "/",
+		MaxAge:   60 * 10, // state is only valid for 10 minutes
+	})
 
 	return c.JSON(fiber.Map{
 		"url": authURL,
@@ -36,6 +44,27 @@ func (h *AuthHandler) GetRedirctLink(c fiber.Ctx) error {
 }
 
 func (h *AuthHandler) Callback(c fiber.Ctx) error {
+	state := c.Query("state")
+	if state == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "Missing state parameter")
+	}
+
+	cookieState := c.Cookies("oauth_state")
+	if cookieState == "" || cookieState != state {
+		return fiber.NewError(fiber.StatusBadRequest, "Invalid state parameter (potential CSRF)")
+	}
+
+	// Delete state cookie after validation
+	c.Cookie(&fiber.Cookie{
+		Name:     "oauth_state",
+		Value:    "",
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "None",
+		Path:     "/",
+		MaxAge:   -1,
+	})
+
 	code := c.Query("code")
 	if code == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "Missing code parameter")
