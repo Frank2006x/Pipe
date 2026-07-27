@@ -19,13 +19,14 @@ func NewPipelineHandler(pipelineService *service.PipelineService) *PipelineHandl
 }
 
 func (h *PipelineHandler) GetRepositoryPipelines(c fiber.Ctx) error {
+	userId := c.Locals("user_id").(int64)
 	repoIdStr := c.Params("id")
 	repoId, err := strconv.ParseInt(repoIdStr, 10, 64)
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Invalid repository ID")
 	}
 
-	pipelines, err := h.pipelineService.ListRepositoryPipelines(c.Context(), repoId)
+	pipelines, err := h.pipelineService.ListRepositoryPipelines(c.Context(), userId, repoId)
 	if err != nil {
 		log.Errorf("Error listing repository pipelines: %v", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "Failed to list repository pipelines")
@@ -37,13 +38,14 @@ func (h *PipelineHandler) GetRepositoryPipelines(c fiber.Ctx) error {
 }
 
 func (h *PipelineHandler) GetPipelineById(c fiber.Ctx) error {
+	userId := c.Locals("user_id").(int64)
 	pipelineIdStr := c.Params("id")
 	pipelineId, err := strconv.ParseInt(pipelineIdStr, 10, 64)
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Invalid pipeline ID")
 	}
 
-	pipeline, err := h.pipelineService.GetPipeline(c.Context(), pipelineId)
+	pipeline, err := h.pipelineService.GetPipeline(c.Context(), userId, pipelineId)
 	if err != nil {
 		log.Errorf("Error getting pipeline: %v", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "Failed to get pipeline")
@@ -55,13 +57,14 @@ func (h *PipelineHandler) GetPipelineById(c fiber.Ctx) error {
 }
 
 func (h *PipelineHandler) GetPipelineJobs(c fiber.Ctx) error {
+	userId := c.Locals("user_id").(int64)
 	pipelineIdStr := c.Params("id")
 	pipelineId, err := strconv.ParseInt(pipelineIdStr, 10, 64)
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Invalid pipeline ID")
 	}
 
-	jobs, err := h.pipelineService.ListJobsByPipeline(c.Context(), pipelineId)
+	jobs, err := h.pipelineService.ListJobsByPipeline(c.Context(), userId, pipelineId)
 	if err != nil {
 		log.Errorf("Error listing pipeline jobs: %v", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "Failed to list pipeline jobs")

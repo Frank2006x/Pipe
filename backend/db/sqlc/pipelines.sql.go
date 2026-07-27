@@ -67,12 +67,44 @@ func (q *Queries) CreatePipeline(ctx context.Context, arg CreatePipelineParams) 
 }
 
 const getPipelineById = `-- name: GetPipelineById :one
+SELECT p.id, p.repository_id, p.commit_sha, p.commit_message, p.branch, p.event_type, p.status, p.created_at, p.started_at, p.finished_at, p.github_delivery_id, p.trigger_username, p.updated_at FROM pipelines p
+JOIN repositories r ON p.repository_id = r.id
+WHERE p.id = $1 AND r.user_id = $2
+`
+
+type GetPipelineByIdParams struct {
+	ID     int64 `json:"id"`
+	UserID int64 `json:"user_id"`
+}
+
+func (q *Queries) GetPipelineById(ctx context.Context, arg GetPipelineByIdParams) (Pipeline, error) {
+	row := q.db.QueryRow(ctx, getPipelineById, arg.ID, arg.UserID)
+	var i Pipeline
+	err := row.Scan(
+		&i.ID,
+		&i.RepositoryID,
+		&i.CommitSha,
+		&i.CommitMessage,
+		&i.Branch,
+		&i.EventType,
+		&i.Status,
+		&i.CreatedAt,
+		&i.StartedAt,
+		&i.FinishedAt,
+		&i.GithubDeliveryID,
+		&i.TriggerUsername,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getPipelineByIdInternal = `-- name: GetPipelineByIdInternal :one
 SELECT id, repository_id, commit_sha, commit_message, branch, event_type, status, created_at, started_at, finished_at, github_delivery_id, trigger_username, updated_at FROM pipelines
 WHERE id = $1
 `
 
-func (q *Queries) GetPipelineById(ctx context.Context, id int64) (Pipeline, error) {
-	row := q.db.QueryRow(ctx, getPipelineById, id)
+func (q *Queries) GetPipelineByIdInternal(ctx context.Context, id int64) (Pipeline, error) {
+	row := q.db.QueryRow(ctx, getPipelineByIdInternal, id)
 	var i Pipeline
 	err := row.Scan(
 		&i.ID,
@@ -93,13 +125,19 @@ func (q *Queries) GetPipelineById(ctx context.Context, id int64) (Pipeline, erro
 }
 
 const listRepositoryPipelines = `-- name: ListRepositoryPipelines :many
-SELECT id, repository_id, commit_sha, commit_message, branch, event_type, status, created_at, started_at, finished_at, github_delivery_id, trigger_username, updated_at FROM pipelines
-WHERE repository_id = $1
-ORDER BY created_at DESC
+SELECT p.id, p.repository_id, p.commit_sha, p.commit_message, p.branch, p.event_type, p.status, p.created_at, p.started_at, p.finished_at, p.github_delivery_id, p.trigger_username, p.updated_at FROM pipelines p
+JOIN repositories r ON p.repository_id = r.id
+WHERE p.repository_id = $1 AND r.user_id = $2
+ORDER BY p.created_at DESC
 `
 
-func (q *Queries) ListRepositoryPipelines(ctx context.Context, repositoryID int64) ([]Pipeline, error) {
-	rows, err := q.db.Query(ctx, listRepositoryPipelines, repositoryID)
+type ListRepositoryPipelinesParams struct {
+	RepositoryID int64 `json:"repository_id"`
+	UserID       int64 `json:"user_id"`
+}
+
+func (q *Queries) ListRepositoryPipelines(ctx context.Context, arg ListRepositoryPipelinesParams) ([]Pipeline, error) {
+	rows, err := q.db.Query(ctx, listRepositoryPipelines, arg.RepositoryID, arg.UserID)
 	if err != nil {
 		return nil, err
 	}

@@ -93,8 +93,11 @@ func (s *PipelineService) CreatePipeline(ctx context.Context, input *CreatePipel
 	return &pipeline, nil
 }
 
-func (s *PipelineService) GetPipeline(ctx context.Context, id int64) (*sqlc.Pipeline, error) {
-	pipeline, err := s.queries.GetPipelineById(ctx, id)
+func (s *PipelineService) GetPipeline(ctx context.Context, userId int64, id int64) (*sqlc.Pipeline, error) {
+	pipeline, err := s.queries.GetPipelineById(ctx, sqlc.GetPipelineByIdParams{
+		ID:     id,
+		UserID: userId,
+	})
 
 	if err != nil {
 		return nil, err
@@ -102,16 +105,38 @@ func (s *PipelineService) GetPipeline(ctx context.Context, id int64) (*sqlc.Pipe
 	return &pipeline, nil
 }
 
-func (s *PipelineService) ListRepositoryPipelines(ctx context.Context, repositoryId int64) ([]sqlc.Pipeline, error) {
-	pipelines, err := s.queries.ListRepositoryPipelines(ctx, repositoryId)
+func (s *PipelineService) GetPipelineInternal(ctx context.Context, id int64) (*sqlc.Pipeline, error) {
+	pipeline, err := s.queries.GetPipelineByIdInternal(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return &pipeline, nil
+}
+
+func (s *PipelineService) ListRepositoryPipelines(ctx context.Context, userId int64, repositoryId int64) ([]sqlc.Pipeline, error) {
+	pipelines, err := s.queries.ListRepositoryPipelines(ctx, sqlc.ListRepositoryPipelinesParams{
+		RepositoryID: repositoryId,
+		UserID:       userId,
+	})
 	if err != nil {
 		return nil, err
 	}
 	return pipelines, nil
 }
 
-func (s *PipelineService) ListJobsByPipeline(ctx context.Context, pipelineId int64) ([]sqlc.Job, error) {
-	jobs, err := s.queries.ListJobsByPipeline(ctx, pipelineId)
+func (s *PipelineService) ListJobsByPipeline(ctx context.Context, userId int64, pipelineId int64) ([]sqlc.Job, error) {
+	jobs, err := s.queries.ListJobsByPipeline(ctx, sqlc.ListJobsByPipelineParams{
+		PipelineID: pipelineId,
+		UserID:     userId,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return jobs, nil
+}
+
+func (s *PipelineService) ListJobsByPipelineInternal(ctx context.Context, pipelineId int64) ([]sqlc.Job, error) {
+	jobs, err := s.queries.ListJobsByPipelineInternal(ctx, pipelineId)
 	if err != nil {
 		return nil, err
 	}

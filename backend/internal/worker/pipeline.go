@@ -41,7 +41,7 @@ func (w *PipelineWorker) ProcessPipeline(ctx context.Context, msg queue.Pipeline
 		}
 	}()
 
-	pipeline, err := w.pipelineService.GetPipeline(ctx, msg.PipelineId)
+	pipeline, err := w.pipelineService.GetPipelineInternal(ctx, msg.PipelineId)
 	if err != nil {
 		return err
 	}
@@ -57,7 +57,7 @@ func (w *PipelineWorker) ProcessPipeline(ctx context.Context, msg queue.Pipeline
 	}
 	log.Printf("Pipeline %d status updated to running", msg.PipelineId)
 
-	jobs, err := w.pipelineService.ListJobsByPipeline(ctx, msg.PipelineId)
+	jobs, err := w.pipelineService.ListJobsByPipelineInternal(ctx, msg.PipelineId)
 	if err != nil {
 		return err
 	}

@@ -14,13 +14,19 @@ VALUES (
 RETURNING *;
 
 -- name: GetPipelineById :one
+SELECT p.* FROM pipelines p
+JOIN repositories r ON p.repository_id = r.id
+WHERE p.id = $1 AND r.user_id = $2;
+
+-- name: GetPipelineByIdInternal :one
 SELECT * FROM pipelines
 WHERE id = $1;
 
 -- name: ListRepositoryPipelines :many
-SELECT * FROM pipelines
-WHERE repository_id = $1
-ORDER BY created_at DESC;
+SELECT p.* FROM pipelines p
+JOIN repositories r ON p.repository_id = r.id
+WHERE p.repository_id = $1 AND r.user_id = $2
+ORDER BY p.created_at DESC;
 
 -- name: UpdatePipelineStatus :one
 UPDATE pipelines

@@ -54,12 +54,54 @@ func (q *Queries) CreateJob(ctx context.Context, arg CreateJobParams) (Job, erro
 }
 
 const listJobsByPipeline = `-- name: ListJobsByPipeline :many
+SELECT j.id, j.pipeline_id, j.name, j.status, j.started_at, j.finished_at, j.order_index, j.created_at, j.updated_at FROM jobs j
+JOIN pipelines p ON j.pipeline_id = p.id
+JOIN repositories r ON p.repository_id = r.id
+WHERE j.pipeline_id = $1 AND r.user_id = $2
+`
+
+type ListJobsByPipelineParams struct {
+	PipelineID int64 `json:"pipeline_id"`
+	UserID     int64 `json:"user_id"`
+}
+
+func (q *Queries) ListJobsByPipeline(ctx context.Context, arg ListJobsByPipelineParams) ([]Job, error) {
+	rows, err := q.db.Query(ctx, listJobsByPipeline, arg.PipelineID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Job{}
+	for rows.Next() {
+		var i Job
+		if err := rows.Scan(
+			&i.ID,
+			&i.PipelineID,
+			&i.Name,
+			&i.Status,
+			&i.StartedAt,
+			&i.FinishedAt,
+			&i.OrderIndex,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listJobsByPipelineInternal = `-- name: ListJobsByPipelineInternal :many
 SELECT id, pipeline_id, name, status, started_at, finished_at, order_index, created_at, updated_at FROM jobs
 WHERE pipeline_id = $1
 `
 
-func (q *Queries) ListJobsByPipeline(ctx context.Context, pipelineID int64) ([]Job, error) {
-	rows, err := q.db.Query(ctx, listJobsByPipeline, pipelineID)
+func (q *Queries) ListJobsByPipelineInternal(ctx context.Context, pipelineID int64) ([]Job, error) {
+	rows, err := q.db.Query(ctx, listJobsByPipelineInternal, pipelineID)
 	if err != nil {
 		return nil, err
 	}

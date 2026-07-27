@@ -11,6 +11,12 @@ VALUES (
 RETURNING *;
 
 -- name: ListJobsByPipeline :many
+SELECT j.* FROM jobs j
+JOIN pipelines p ON j.pipeline_id = p.id
+JOIN repositories r ON p.repository_id = r.id
+WHERE j.pipeline_id = $1 AND r.user_id = $2;
+
+-- name: ListJobsByPipelineInternal :many
 SELECT * FROM jobs
 WHERE pipeline_id = $1;
 
