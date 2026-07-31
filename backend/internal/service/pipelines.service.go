@@ -113,6 +113,23 @@ func (s *PipelineService) GetPipelineInternal(ctx context.Context, id int64) (*s
 	return &pipeline, nil
 }
 
+func (s *PipelineService) GetRepositoryInternal(ctx context.Context, repositoryId int64) (*sqlc.Repository, error) {
+	repo, err := s.queries.GetRepositoryByIdInternal(ctx, repositoryId)
+	if err != nil {
+		return nil, err
+	}
+	return &repo, nil
+}
+
+func (s *PipelineService) GetGithubTokenInternal(ctx context.Context, userId int64) (string, error) {
+	token, err := s.queries.GetGithubToken(ctx, userId)
+	if err != nil {
+		return "", err
+	}
+	return token, nil
+}
+
+
 func (s *PipelineService) ListRepositoryPipelines(ctx context.Context, userId int64, repositoryId int64) ([]sqlc.Pipeline, error) {
 	pipelines, err := s.queries.ListRepositoryPipelines(ctx, sqlc.ListRepositoryPipelinesParams{
 		RepositoryID: repositoryId,

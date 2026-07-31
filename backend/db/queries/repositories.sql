@@ -24,6 +24,11 @@ WHERE github_repo_id = $1;
 SELECT * FROM repositories 
 WHERE id = $1 AND user_id = $2;
 
+-- name: GetRepositoryByIdInternal :one
+SELECT * FROM repositories 
+WHERE id = $1;
+
+
 -- name: GetRepositoryByFullName :one
 SELECT * FROM repositories 
 WHERE full_name = $1;

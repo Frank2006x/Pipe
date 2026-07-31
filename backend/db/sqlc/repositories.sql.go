@@ -230,6 +230,35 @@ func (q *Queries) GetRepositoryById(ctx context.Context, arg GetRepositoryByIdPa
 	return i, err
 }
 
+const getRepositoryByIdInternal = `-- name: GetRepositoryByIdInternal :one
+SELECT id, user_id, github_repo_id, name, full_name, html_url, default_branch, private, webhook_id, is_active, created_at, updated_at, owner, description, clone_url, webhook_secret FROM repositories 
+WHERE id = $1
+`
+
+func (q *Queries) GetRepositoryByIdInternal(ctx context.Context, id int64) (Repository, error) {
+	row := q.db.QueryRow(ctx, getRepositoryByIdInternal, id)
+	var i Repository
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.GithubRepoID,
+		&i.Name,
+		&i.FullName,
+		&i.HtmlUrl,
+		&i.DefaultBranch,
+		&i.Private,
+		&i.WebhookID,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Owner,
+		&i.Description,
+		&i.CloneUrl,
+		&i.WebhookSecret,
+	)
+	return i, err
+}
+
 const getRepositoryByWebhookId = `-- name: GetRepositoryByWebhookId :one
 SELECT id, user_id, github_repo_id, name, full_name, html_url, default_branch, private, webhook_id, is_active, created_at, updated_at, owner, description, clone_url, webhook_secret FROM repositories
 WHERE webhook_id = $1

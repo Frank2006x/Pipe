@@ -25,6 +25,7 @@ type Querier interface {
 	GetRepositoryByFullName(ctx context.Context, fullName string) (Repository, error)
 	GetRepositoryByGithubRepoID(ctx context.Context, githubRepoID int64) (Repository, error)
 	GetRepositoryById(ctx context.Context, arg GetRepositoryByIdParams) (Repository, error)
+	GetRepositoryByIdInternal(ctx context.Context, id int64) (Repository, error)
 	GetRepositoryByWebhookId(ctx context.Context, webhookID pgtype.Int8) (Repository, error)
 	GetUserByGithubID(ctx context.Context, githubID int64) (User, error)
 	GetUserByID(ctx context.Context, id int64) (User, error)

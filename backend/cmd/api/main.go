@@ -5,6 +5,7 @@ import (
 	"Frank2006x/Pipe/internal/auth"
 	"Frank2006x/Pipe/internal/config"
 	"Frank2006x/Pipe/internal/db"
+	"Frank2006x/Pipe/internal/executor"
 	"Frank2006x/Pipe/internal/github"
 	"Frank2006x/Pipe/internal/queue"
 	"Frank2006x/Pipe/internal/server/middleware"
@@ -51,8 +52,12 @@ func main() {
 	githubService := service.NewGithubService(githubClient, queries, &cfg)
 	pipelineService := service.NewPipelineService(queries, pool, rabbitmq)
 	appCtx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	worker := worker.NewPipelineWorker(rabbitmq, pipelineService)
+	dockerExecutor, err := executor.NewDockerExecutor()
+	if err != nil {
+		log.Printf("[WARNING] Failed to initialize Docker executor: %v", err)
+	}
+
+	worker := worker.NewPipelineWorker(rabbitmq, pipelineService, dockerExecutor)
 
 	app := fiber.New()
 	app.Use(cors.New(cors.Config{
