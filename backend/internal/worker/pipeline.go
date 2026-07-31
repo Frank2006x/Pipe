@@ -136,10 +136,10 @@ func (w *PipelineWorker) ExecuteJob(ctx context.Context, j sqlc.Job, mountDir st
 	}
 
 	execJob := executor.Job{
-		Image:    "golang:1.24",
+		Image:    "golang:1.24-alpine",
 		MountDir: mountDir,
 		WorkDir:  "/workspace",
-		Commands: []string{"go mod download", "go build ./..."},
+		Commands: []string{"pwd", "ls -la", "go mod download", "go build ./..."},
 	}
 
 	result, err := w.executor.Execute(ctx, execJob)

@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"strings"
 	"time"
 
+	"github.com/moby/moby/api/pkg/stdcopy"
 	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/client"
 )
@@ -28,13 +30,21 @@ func (d *DockerExecutor) Execute(ctx context.Context, job Job) (*Result, error) 
 	startTime := time.Now()
 
 	// 1. Pull Image if missing
-	log.Printf("Pulling image %s...", job.Image)
-	reader, err := d.cli.ImagePull(ctx, job.Image, client.ImagePullOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to pull image %s: %w", job.Image, err)
+	imageRef := job.Image
+	if !strings.Contains(imageRef, "/") {
+		imageRef = "docker.io/library/" + imageRef
 	}
-	_, _ = io.Copy(io.Discard, reader)
-	_ = reader.Close()
+
+	log.Printf("Pulling image %s...", imageRef)
+	reader, err := d.cli.ImagePull(ctx, imageRef, client.ImagePullOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to pull image %s: %w", imageRef, err)
+	}
+	defer reader.Close()
+
+	if _, err := io.Copy(io.Discard, reader); err != nil {
+		return nil, fmt.Errorf("error reading image pull stream: %w", err)
+	}
 
 	// 2. Set default working directory
 	workDir := job.WorkDir
@@ -106,6 +116,20 @@ func (d *DockerExecutor) Execute(ctx context.Context, job Job) (*Result, error) 
 
 	duration := time.Since(startTime)
 	log.Printf("Build completed. Exit Code: %d", exitCode)
+
+	// 7. Stream container stdout and stderr logs
+	outStream, logErr := d.cli.ContainerLogs(ctx, containerID, client.ContainerLogsOptions{
+		ShowStdout: true,
+		ShowStderr: true,
+	})
+	if logErr == nil && outStream != nil {
+		defer outStream.Close()
+		log.Println("--- CONTAINER STDOUT & STDERR LOGS ---")
+		_, _ = stdcopy.StdCopy(os.Stdout, os.Stderr, outStream)
+		log.Println("--- END CONTAINER LOGS ---")
+	} else if logErr != nil {
+		log.Printf("Warning: failed to retrieve container logs: %v", logErr)
+	}
 
 	return &Result{
 		ExitCode: exitCode,
