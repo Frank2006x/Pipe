@@ -33,16 +33,16 @@ func (w *PipelineWorker) Start(ctx context.Context) error {
 	return w.queue.ConsumerPipeline(ctx, w.ProcessPipeline)
 }
 
-func (w *PipelineWorker) ProcessPipeline(ctx context.Context, msg queue.PipelineMessage) error {
-	var err error
+func (w *PipelineWorker) ProcessPipeline(ctx context.Context, msg queue.PipelineMessage) (err error) {
 	defer func() {
 		if err != nil {
+			log.Printf("[WARNING] Pipeline %d failed: %v", msg.PipelineId, err)
 			now := time.Now()
 			dbCtx, dbCancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer dbCancel()
 			_, updateErr := w.pipelineService.UpdatePipelineStatus(dbCtx, msg.PipelineId, sqlc.PipelineStatusFailed, nil, &now)
 			if updateErr != nil {
-				log.Printf("Error while updating pipeline status: %v", updateErr)
+				log.Printf("Error while updating pipeline status to failed: %v", updateErr)
 			}
 		}
 	}()
@@ -90,15 +90,16 @@ func (w *PipelineWorker) ProcessPipeline(ctx context.Context, msg queue.Pipeline
 	}
 
 	cloneCmd := exec.CommandContext(ctx, "git", "clone", cloneUrl, tmpDir)
-	if output, err := cloneCmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("failed to clone repository (%s): %s: %w", repo.FullName, string(output), err)
+	if output, cloneErr := cloneCmd.CombinedOutput(); cloneErr != nil {
+		err = fmt.Errorf("failed to clone repository (%s): %s: %w", repo.FullName, string(output), cloneErr)
+		return err
 	}
 	log.Println("Repository cloned")
 
 	if pipeline.CommitSha != "" {
 		checkoutCmd := exec.CommandContext(ctx, "git", "checkout", pipeline.CommitSha)
 		checkoutCmd.Dir = tmpDir
-		if output, err := checkoutCmd.CombinedOutput(); err != nil {
+		if output, checkoutErr := checkoutCmd.CombinedOutput(); checkoutErr != nil {
 			log.Printf("Warning: failed to checkout commit %s: %s", pipeline.CommitSha, string(output))
 		}
 	}
@@ -112,7 +113,7 @@ func (w *PipelineWorker) ProcessPipeline(ctx context.Context, msg queue.Pipeline
 
 	for _, job := range jobs {
 		log.Printf("Executing job %d (%s)", job.ID, job.Name)
-		err := w.ExecuteJob(ctx, job, tmpDir)
+		err = w.ExecuteJob(ctx, job, tmpDir)
 		if err != nil {
 			return err
 		}
