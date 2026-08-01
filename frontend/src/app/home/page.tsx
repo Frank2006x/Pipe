@@ -439,6 +439,7 @@ export default function HomePage() {
                   return (
                     <CommandItem
                       key={repo.id}
+                      value={`${repo.full_name} ${repo.name}`}
                       disabled={isAlreadyImported || isCurrentlyImporting}
                       onSelect={() => handleImportRepo(repo)}
                       className="flex items-center justify-between gap-4 p-3 cursor-pointer hover:bg-muted/80"

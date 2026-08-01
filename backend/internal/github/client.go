@@ -21,7 +21,7 @@ const (
 	tokenURL     = baseURL + "/login/oauth/access_token"
 
 	userEndpoint                = apiURL + "/user"
-	listAllRepositoriesEndpoint = apiURL + "/user/repos"
+	listAllRepositoriesEndpoint = apiURL + "/user/repos?per_page=100&sort=updated"
 	repositoriesEndpoint        = apiURL + "/repos/%s/%s"
 	createWebhookEndpoint       = apiURL + "/repos/%s/%s/hooks"
 	userAgent                   = "Pipe"
