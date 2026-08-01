@@ -154,15 +154,20 @@ type GithubToken struct {
 }
 
 type Job struct {
-	ID         int64              `json:"id"`
-	PipelineID int64              `json:"pipeline_id"`
-	Name       string             `json:"name"`
-	Status     JobStatus          `json:"status"`
-	StartedAt  pgtype.Timestamptz `json:"started_at"`
-	FinishedAt pgtype.Timestamptz `json:"finished_at"`
-	OrderIndex int32              `json:"order_index"`
-	CreatedAt  pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
+	ID               int64              `json:"id"`
+	PipelineID       int64              `json:"pipeline_id"`
+	Name             string             `json:"name"`
+	Status           JobStatus          `json:"status"`
+	StartedAt        pgtype.Timestamptz `json:"started_at"`
+	FinishedAt       pgtype.Timestamptz `json:"finished_at"`
+	OrderIndex       int32              `json:"order_index"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+	Image            string             `json:"image"`
+	WorkingDirectory string             `json:"working_directory"`
+	Commands         []string           `json:"commands"`
+	Logs             string             `json:"logs"`
+	ExitCode         pgtype.Int4        `json:"exit_code"`
 }
 
 type Log struct {

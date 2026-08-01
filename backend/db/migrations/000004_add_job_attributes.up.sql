@@ -1,0 +1,6 @@
+ALTER TABLE jobs
+    ADD COLUMN image TEXT NOT NULL DEFAULT '',
+    ADD COLUMN working_directory TEXT NOT NULL DEFAULT '',
+    ADD COLUMN commands TEXT[] NOT NULL DEFAULT '{}',
+    ADD COLUMN logs TEXT NOT NULL DEFAULT '',
+    ADD COLUMN exit_code INT;

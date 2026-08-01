@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -118,6 +119,7 @@ func (d *DockerExecutor) Execute(ctx context.Context, job Job) (*Result, error) 
 	log.Printf("Build completed. Exit Code: %d", exitCode)
 
 	// 7. Stream container stdout and stderr logs
+	var logBuf bytes.Buffer
 	outStream, logErr := d.cli.ContainerLogs(ctx, containerID, client.ContainerLogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
@@ -125,7 +127,9 @@ func (d *DockerExecutor) Execute(ctx context.Context, job Job) (*Result, error) 
 	if logErr == nil && outStream != nil {
 		defer outStream.Close()
 		log.Println("--- CONTAINER STDOUT & STDERR LOGS ---")
-		_, _ = stdcopy.StdCopy(os.Stdout, os.Stderr, outStream)
+		stdoutWriter := io.MultiWriter(os.Stdout, &logBuf)
+		stderrWriter := io.MultiWriter(os.Stderr, &logBuf)
+		_, _ = stdcopy.StdCopy(stdoutWriter, stderrWriter, outStream)
 		log.Println("--- END CONTAINER LOGS ---")
 	} else if logErr != nil {
 		log.Printf("Warning: failed to retrieve container logs: %v", logErr)
@@ -135,5 +139,6 @@ func (d *DockerExecutor) Execute(ctx context.Context, job Job) (*Result, error) 
 		ExitCode: exitCode,
 		Success:  exitCode == 0,
 		Duration: duration,
+		Logs:     logBuf.String(),
 	}, nil
 }

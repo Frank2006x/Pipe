@@ -8,6 +8,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -174,17 +175,23 @@ func (s *PipelineService) UpdatePipelineStatus(ctx context.Context, id int64, st
 }
 
 type createJobInput struct {
-	name       string
-	status     sqlc.JobStatus
-	orderIndex int32
+	name             string
+	status           sqlc.JobStatus
+	orderIndex       int32
+	image            string
+	workingDirectory string
+	commands         []string
 }
 
 func (s *PipelineService) createJob(ctx context.Context, queries *sqlc.Queries, pipelineID int64, input *createJobInput) (*sqlc.Job, error) {
 	job, err := queries.CreateJob(ctx, sqlc.CreateJobParams{
-		PipelineID: pipelineID,
-		Name:       input.name,
-		Status:     input.status,
-		OrderIndex: input.orderIndex,
+		PipelineID:       pipelineID,
+		Name:             input.name,
+		Status:           input.status,
+		OrderIndex:       input.orderIndex,
+		Image:            input.image,
+		WorkingDirectory: input.workingDirectory,
+		Commands:         input.commands,
 	})
 	if err != nil {
 		return nil, err
@@ -195,19 +202,28 @@ func (s *PipelineService) createJob(ctx context.Context, queries *sqlc.Queries, 
 func (s *PipelineService) createDefaultJobs(ctx context.Context, queries *sqlc.Queries, pipelineID int64) error {
 	jobs := []createJobInput{
 		{
-			name:       "Build",
-			status:     sqlc.JobStatusPending,
-			orderIndex: 0,
+			name:             "Build",
+			status:           sqlc.JobStatusPending,
+			orderIndex:       0,
+			image:            "golang:1.24-alpine",
+			workingDirectory: "/workspace",
+			commands:         []string{"pwd", "ls -la", "go mod download", "go build ./..."},
 		},
 		{
-			name:       "Test",
-			status:     sqlc.JobStatusPending,
-			orderIndex: 1,
+			name:             "Test",
+			status:           sqlc.JobStatusPending,
+			orderIndex:       1,
+			image:            "golang:1.24-alpine",
+			workingDirectory: "/workspace",
+			commands:         []string{"echo 'Running tests...'"},
 		},
 		{
-			name:       "Deploy",
-			status:     sqlc.JobStatusPending,
-			orderIndex: 2,
+			name:             "Deploy",
+			status:           sqlc.JobStatusPending,
+			orderIndex:       2,
+			image:            "golang:1.24-alpine",
+			workingDirectory: "/workspace",
+			commands:         []string{"echo 'Deploying application...'"},
 		},
 	}
 
@@ -226,6 +242,20 @@ func (s *PipelineService) UpdateJobStatus(ctx context.Context, id int64, status 
 		ID:         id,
 		Status:     status,
 		StartedAt:  util.TimestamptzOrNull(startedAt),
+		FinishedAt: util.TimestamptzOrNull(finishedAt),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &job, nil
+}
+
+func (s *PipelineService) UpdateJobResult(ctx context.Context, id int64, status sqlc.JobStatus, exitCode int32, logs string, finishedAt *time.Time) (*sqlc.Job, error) {
+	job, err := s.queries.UpdateJobResult(ctx, sqlc.UpdateJobResultParams{
+		ID:         id,
+		Status:     status,
+		ExitCode:   pgtype.Int4{Int32: exitCode, Valid: true},
+		Logs:       logs,
 		FinishedAt: util.TimestamptzOrNull(finishedAt),
 	})
 	if err != nil {

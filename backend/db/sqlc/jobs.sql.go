@@ -16,19 +16,25 @@ INSERT INTO jobs (
     pipeline_id,
     status,
     name,
-    order_index
+    order_index,
+    image,
+    working_directory,
+    commands
 )
 VALUES (
-    $1,$2,$3,$4
+    $1, $2, $3, $4, $5, $6, $7
 )
-RETURNING id, pipeline_id, name, status, started_at, finished_at, order_index, created_at, updated_at
+RETURNING id, pipeline_id, name, status, started_at, finished_at, order_index, created_at, updated_at, image, working_directory, commands, logs, exit_code
 `
 
 type CreateJobParams struct {
-	PipelineID int64     `json:"pipeline_id"`
-	Status     JobStatus `json:"status"`
-	Name       string    `json:"name"`
-	OrderIndex int32     `json:"order_index"`
+	PipelineID       int64     `json:"pipeline_id"`
+	Status           JobStatus `json:"status"`
+	Name             string    `json:"name"`
+	OrderIndex       int32     `json:"order_index"`
+	Image            string    `json:"image"`
+	WorkingDirectory string    `json:"working_directory"`
+	Commands         []string  `json:"commands"`
 }
 
 func (q *Queries) CreateJob(ctx context.Context, arg CreateJobParams) (Job, error) {
@@ -37,6 +43,9 @@ func (q *Queries) CreateJob(ctx context.Context, arg CreateJobParams) (Job, erro
 		arg.Status,
 		arg.Name,
 		arg.OrderIndex,
+		arg.Image,
+		arg.WorkingDirectory,
+		arg.Commands,
 	)
 	var i Job
 	err := row.Scan(
@@ -49,15 +58,21 @@ func (q *Queries) CreateJob(ctx context.Context, arg CreateJobParams) (Job, erro
 		&i.OrderIndex,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Image,
+		&i.WorkingDirectory,
+		&i.Commands,
+		&i.Logs,
+		&i.ExitCode,
 	)
 	return i, err
 }
 
 const listJobsByPipeline = `-- name: ListJobsByPipeline :many
-SELECT j.id, j.pipeline_id, j.name, j.status, j.started_at, j.finished_at, j.order_index, j.created_at, j.updated_at FROM jobs j
+SELECT j.id, j.pipeline_id, j.name, j.status, j.started_at, j.finished_at, j.order_index, j.created_at, j.updated_at, j.image, j.working_directory, j.commands, j.logs, j.exit_code FROM jobs j
 JOIN pipelines p ON j.pipeline_id = p.id
 JOIN repositories r ON p.repository_id = r.id
 WHERE j.pipeline_id = $1 AND r.user_id = $2
+ORDER BY j.order_index ASC
 `
 
 type ListJobsByPipelineParams struct {
@@ -84,6 +99,11 @@ func (q *Queries) ListJobsByPipeline(ctx context.Context, arg ListJobsByPipeline
 			&i.OrderIndex,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Image,
+			&i.WorkingDirectory,
+			&i.Commands,
+			&i.Logs,
+			&i.ExitCode,
 		); err != nil {
 			return nil, err
 		}
@@ -96,8 +116,9 @@ func (q *Queries) ListJobsByPipeline(ctx context.Context, arg ListJobsByPipeline
 }
 
 const listJobsByPipelineInternal = `-- name: ListJobsByPipelineInternal :many
-SELECT id, pipeline_id, name, status, started_at, finished_at, order_index, created_at, updated_at FROM jobs
+SELECT id, pipeline_id, name, status, started_at, finished_at, order_index, created_at, updated_at, image, working_directory, commands, logs, exit_code FROM jobs
 WHERE pipeline_id = $1
+ORDER BY order_index ASC
 `
 
 func (q *Queries) ListJobsByPipelineInternal(ctx context.Context, pipelineID int64) ([]Job, error) {
@@ -119,6 +140,11 @@ func (q *Queries) ListJobsByPipelineInternal(ctx context.Context, pipelineID int
 			&i.OrderIndex,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Image,
+			&i.WorkingDirectory,
+			&i.Commands,
+			&i.Logs,
+			&i.ExitCode,
 		); err != nil {
 			return nil, err
 		}
@@ -130,6 +156,54 @@ func (q *Queries) ListJobsByPipelineInternal(ctx context.Context, pipelineID int
 	return items, nil
 }
 
+const updateJobResult = `-- name: UpdateJobResult :one
+UPDATE jobs
+SET
+    status = $1,
+    exit_code = $2,
+    logs = $3,
+    finished_at = COALESCE($4, finished_at),
+    updated_at = NOW()
+WHERE id = $5
+RETURNING id, pipeline_id, name, status, started_at, finished_at, order_index, created_at, updated_at, image, working_directory, commands, logs, exit_code
+`
+
+type UpdateJobResultParams struct {
+	Status     JobStatus          `json:"status"`
+	ExitCode   pgtype.Int4        `json:"exit_code"`
+	Logs       string             `json:"logs"`
+	FinishedAt pgtype.Timestamptz `json:"finished_at"`
+	ID         int64              `json:"id"`
+}
+
+func (q *Queries) UpdateJobResult(ctx context.Context, arg UpdateJobResultParams) (Job, error) {
+	row := q.db.QueryRow(ctx, updateJobResult,
+		arg.Status,
+		arg.ExitCode,
+		arg.Logs,
+		arg.FinishedAt,
+		arg.ID,
+	)
+	var i Job
+	err := row.Scan(
+		&i.ID,
+		&i.PipelineID,
+		&i.Name,
+		&i.Status,
+		&i.StartedAt,
+		&i.FinishedAt,
+		&i.OrderIndex,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Image,
+		&i.WorkingDirectory,
+		&i.Commands,
+		&i.Logs,
+		&i.ExitCode,
+	)
+	return i, err
+}
+
 const updateJobStatus = `-- name: UpdateJobStatus :one
 UPDATE jobs
 SET
@@ -138,7 +212,7 @@ SET
     finished_at = COALESCE($3, finished_at),
     updated_at = NOW()
 WHERE id = $4
-RETURNING id, pipeline_id, name, status, started_at, finished_at, order_index, created_at, updated_at
+RETURNING id, pipeline_id, name, status, started_at, finished_at, order_index, created_at, updated_at, image, working_directory, commands, logs, exit_code
 `
 
 type UpdateJobStatusParams struct {
@@ -166,6 +240,11 @@ func (q *Queries) UpdateJobStatus(ctx context.Context, arg UpdateJobStatusParams
 		&i.OrderIndex,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Image,
+		&i.WorkingDirectory,
+		&i.Commands,
+		&i.Logs,
+		&i.ExitCode,
 	)
 	return i, err
 }

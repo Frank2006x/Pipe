@@ -35,6 +35,7 @@ type Querier interface {
 	ListRepositoryPipelines(ctx context.Context, arg ListRepositoryPipelinesParams) ([]Pipeline, error)
 	SetRepositoryActive(ctx context.Context, arg SetRepositoryActiveParams) (Repository, error)
 	UpdateGithubToken(ctx context.Context, arg UpdateGithubTokenParams) (GithubToken, error)
+	UpdateJobResult(ctx context.Context, arg UpdateJobResultParams) (Job, error)
 	UpdateJobStatus(ctx context.Context, arg UpdateJobStatusParams) (Job, error)
 	UpdatePipelineStatus(ctx context.Context, arg UpdatePipelineStatusParams) (Pipeline, error)
 	UpdateRepositoryMetadata(ctx context.Context, arg UpdateRepositoryMetadataParams) (Repository, error)

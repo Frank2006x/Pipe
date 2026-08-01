@@ -135,25 +135,46 @@ func (w *PipelineWorker) ExecuteJob(ctx context.Context, j sqlc.Job, mountDir st
 		return err
 	}
 
+	image := j.Image
+	if image == "" {
+		image = "golang:1.24-alpine"
+	}
+	workDir := j.WorkingDirectory
+	if workDir == "" {
+		workDir = "/workspace"
+	}
+	commands := j.Commands
+	if len(commands) == 0 {
+		commands = []string{"pwd", "ls -la", "go mod download", "go build ./..."}
+	}
+
 	execJob := executor.Job{
-		Image:    "golang:1.24-alpine",
+		ID:       j.ID,
+		Name:     j.Name,
+		Image:    image,
 		MountDir: mountDir,
-		WorkDir:  "/workspace",
-		Commands: []string{"pwd", "ls -la", "go mod download", "go build ./..."},
+		WorkDir:  workDir,
+		Commands: commands,
 	}
 
 	result, err := w.executor.Execute(ctx, execJob)
 	finished := time.Now()
 
 	if err != nil || result == nil || !result.Success {
-		_, _ = w.pipelineService.UpdateJobStatus(ctx, j.ID, sqlc.JobStatusFailed, nil, &finished)
+		var exitCode int32 = -1
+		var logs string
+		if result != nil {
+			exitCode = int32(result.ExitCode)
+			logs = result.Logs
+		}
+		_, _ = w.pipelineService.UpdateJobResult(ctx, j.ID, sqlc.JobStatusFailed, exitCode, logs, &finished)
 		if err != nil {
 			return fmt.Errorf("job %d execution failed: %w", j.ID, err)
 		}
 		return fmt.Errorf("job %d execution failed with exit code %d", j.ID, result.ExitCode)
 	}
 
-	_, err = w.pipelineService.UpdateJobStatus(ctx, j.ID, sqlc.JobStatusSuccess, nil, &finished)
+	_, err = w.pipelineService.UpdateJobResult(ctx, j.ID, sqlc.JobStatusSuccess, int32(result.ExitCode), result.Logs, &finished)
 	if err != nil {
 		return err
 	}
