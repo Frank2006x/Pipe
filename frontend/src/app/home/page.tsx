@@ -521,6 +521,7 @@ export default function HomePage() {
         <JobConfigDialog
           open={isConfigOpen}
           onOpenChange={setIsConfigOpen}
+          repoId={selectedConfigRepo.id}
           repoName={selectedConfigRepo.name}
           repoFullName={selectedConfigRepo.full_name}
         />

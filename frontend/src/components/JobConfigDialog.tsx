@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,7 @@ import {
   CheckCircle2,
   Sliders,
   Code2,
+  Loader2,
 } from "lucide-react";
 
 export interface CustomJobConfig {
@@ -38,6 +40,7 @@ export interface CustomJobConfig {
 interface JobConfigDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  repoId: number;
   repoName: string;
   repoFullName: string;
 }
@@ -57,12 +60,12 @@ const DEFAULT_MOCK_JOBS: CustomJobConfig[] = [
     name: "Build & Compile",
     image: "golang:1.24-alpine",
     workingDirectory: "/workspace",
-    commands: ["pwd", "ls -la", "go mod download", "go build -o app ./cmd/api"],
+    commands: ["pwd", "ls -la", "go mod download", "go build ./..."],
     env: [{ key: "CGO_ENABLED", value: "0" }],
   },
   {
     id: "job-2",
-    name: "Unit & Integration Tests",
+    name: "Unit Tests",
     image: "golang:1.24-alpine",
     workingDirectory: "/workspace",
     commands: ["go test -v ./..."],
@@ -73,12 +76,55 @@ const DEFAULT_MOCK_JOBS: CustomJobConfig[] = [
 export default function JobConfigDialog({
   open,
   onOpenChange,
+  repoId,
   repoName,
   repoFullName,
 }: JobConfigDialogProps) {
   const [jobs, setJobs] = useState<CustomJobConfig[]>(DEFAULT_MOCK_JOBS);
   const [activeJobId, setActiveJobId] = useState<string>(DEFAULT_MOCK_JOBS[0].id);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const backendBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+
+  useEffect(() => {
+    if (!open || !repoId) return;
+
+    const fetchJobs = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await axios.get(
+          `${backendBaseUrl}/repositories/${repoId}/jobs`,
+          { withCredentials: true }
+        );
+        const fetchedJobs = response.data?.jobs;
+        if (Array.isArray(fetchedJobs) && fetchedJobs.length > 0) {
+          const mapped: CustomJobConfig[] = fetchedJobs.map((j: any) => ({
+            id: String(j.id || `job-${j.order_index}`),
+            name: j.name || "Build Step",
+            image: j.image || "golang:1.24-alpine",
+            workingDirectory: j.working_directory || "/workspace",
+            commands: Array.isArray(j.commands) ? j.commands : [],
+            env: [],
+          }));
+          setJobs(mapped);
+          setActiveJobId(mapped[0].id);
+        } else {
+          setJobs([]);
+          setActiveJobId("");
+        }
+      } catch (err: any) {
+        console.error("Failed to load repository jobs:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchJobs();
+  }, [open, repoId]);
 
   const activeJob = jobs.find((j) => j.id === activeJobId) || jobs[0];
 
@@ -217,12 +263,37 @@ export default function JobConfigDialog({
     }
   };
 
-  const handleSave = () => {
-    setSaveSuccess(true);
-    setTimeout(() => {
-      setSaveSuccess(false);
-      onOpenChange(false);
-    }, 1200);
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const payload = jobs.map((j, idx) => ({
+        name: j.name,
+        order_index: idx,
+        image: j.image,
+        working_directory: j.workingDirectory || "/workspace",
+        commands: j.commands,
+      }));
+
+      await axios.post(
+        `${backendBaseUrl}/repositories/${repoId}/jobs`,
+        { jobs: payload },
+        { withCredentials: true }
+      );
+
+      setSaveSuccess(true);
+      setTimeout(() => {
+        setSaveSuccess(false);
+        onOpenChange(false);
+      }, 1200);
+    } catch (err: any) {
+      console.error("Failed to save repository jobs:", err);
+      setError(
+        err.response?.data?.message || "Failed to save jobs. Please try again."
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
