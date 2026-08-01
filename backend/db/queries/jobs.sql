@@ -1,6 +1,7 @@
 -- name: CreateJob :one
 INSERT INTO jobs (
     pipeline_id,
+    template_id,
     status,
     name,
     order_index,
@@ -9,7 +10,7 @@ INSERT INTO jobs (
     commands
 )
 VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, $7, $8
 )
 RETURNING *;
 
