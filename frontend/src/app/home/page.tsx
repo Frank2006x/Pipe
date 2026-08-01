@@ -14,8 +14,9 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { LogOut, Mail, Shield, User, GitBranch, Sun, Moon, Plus, Loader2, Globe, Lock, Check, AlertCircle, ExternalLink, Sliders } from "lucide-react";
+import { LogOut, Mail, Shield, User, GitBranch, Sun, Moon, Plus, Loader2, Globe, Lock, Check, AlertCircle, ExternalLink, Sliders, Terminal } from "lucide-react";
 import JobConfigDialog from "@/components/JobConfigDialog";
+import PipelineLogsDialog from "@/components/PipelineLogsDialog";
 import {
   CommandDialog,
   CommandInput,
@@ -92,6 +93,10 @@ export default function HomePage() {
   // Job Configuration Modal state
   const [selectedConfigRepo, setSelectedConfigRepo] = useState<ImportedRepository | null>(null);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
+
+  // Pipeline Execution Logs Modal state
+  const [selectedLogsRepo, setSelectedLogsRepo] = useState<ImportedRepository | null>(null);
+  const [isLogsOpen, setIsLogsOpen] = useState(false);
 
   const backendBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -334,18 +339,32 @@ export default function HomePage() {
                         </div>
                       </CardContent>
                       <CardFooter className="pt-0 pb-4 flex items-center justify-between gap-2 border-t border-border/40 pt-3">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 text-xs font-semibold text-primary border-primary/20 hover:bg-primary/10 transition-all flex items-center gap-1.5"
-                          onClick={() => {
-                            setSelectedConfigRepo(repo);
-                            setIsConfigOpen(true);
-                          }}
-                        >
-                          <Sliders className="h-3.5 w-3.5" />
-                          Configure Jobs
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs font-semibold text-foreground hover:bg-muted transition-all flex items-center gap-1.5"
+                            onClick={() => {
+                              setSelectedLogsRepo(repo);
+                              setIsLogsOpen(true);
+                            }}
+                          >
+                            <Terminal className="h-3.5 w-3.5 text-primary" />
+                            View Logs
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs font-semibold text-primary border-primary/20 hover:bg-primary/10 transition-all flex items-center gap-1.5"
+                            onClick={() => {
+                              setSelectedConfigRepo(repo);
+                              setIsConfigOpen(true);
+                            }}
+                          >
+                            <Sliders className="h-3.5 w-3.5" />
+                            Configure Jobs
+                          </Button>
+                        </div>
 
                         <div className="flex items-center gap-2">
                           <a 
@@ -524,6 +543,17 @@ export default function HomePage() {
           repoId={selectedConfigRepo.id}
           repoName={selectedConfigRepo.name}
           repoFullName={selectedConfigRepo.full_name}
+        />
+      )}
+
+      {/* Pipeline Execution Logs Modal */}
+      {selectedLogsRepo && (
+        <PipelineLogsDialog
+          open={isLogsOpen}
+          onOpenChange={setIsLogsOpen}
+          repoId={selectedLogsRepo.id}
+          repoName={selectedLogsRepo.name}
+          repoFullName={selectedLogsRepo.full_name}
         />
       )}
     </div>
