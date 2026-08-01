@@ -74,3 +74,51 @@ func (h *PipelineHandler) GetPipelineJobs(c fiber.Ctx) error {
 		"jobs": jobs,
 	})
 }
+
+func (h *PipelineHandler) GetRepositoryJobs(c fiber.Ctx) error {
+	userId := c.Locals("user_id").(int64)
+	repoIdStr := c.Params("id")
+	repoId, err := strconv.ParseInt(repoIdStr, 10, 64)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "Invalid repository ID")
+	}
+
+	jobs, err := h.pipelineService.ListRepositoryJobTemplates(c.Context(), userId, repoId)
+	if err != nil {
+		log.Errorf("Error listing repository job templates: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to list repository job templates")
+	}
+
+	return c.JSON(fiber.Map{
+		"jobs": jobs,
+	})
+}
+
+func (h *PipelineHandler) SaveRepositoryJobs(c fiber.Ctx) error {
+	userId := c.Locals("user_id").(int64)
+	repoIdStr := c.Params("id")
+	repoId, err := strconv.ParseInt(repoIdStr, 10, 64)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "Invalid repository ID")
+	}
+
+	var req struct {
+		Jobs []service.JobTemplateInput `json:"jobs"`
+	}
+
+	if err := c.Bind().Body(&req); err != nil {
+		log.Errorf("Error parsing job templates request: %v", err)
+		return fiber.NewError(fiber.StatusBadRequest, "Invalid request body")
+	}
+
+	jobs, err := h.pipelineService.SaveRepositoryJobTemplates(c.Context(), userId, repoId, req.Jobs)
+	if err != nil {
+		log.Errorf("Error saving repository job templates: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(fiber.Map{
+		"message": "Repository jobs saved successfully",
+		"jobs":    jobs,
+	})
+}

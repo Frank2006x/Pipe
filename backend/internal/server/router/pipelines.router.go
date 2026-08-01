@@ -18,8 +18,10 @@ func PipelineRouter(router *fiber.App, pipelineService *service.PipelineService,
 	pipelinesGroup.Get("/:id", pipelineHandler.GetPipelineById)
 	pipelinesGroup.Get("/:id/jobs", pipelineHandler.GetPipelineJobs)
 
-	// Repository pipelines endpoint
+	// Repository pipelines & jobs endpoints
 	repositoriesGroup := router.Group("/repositories")
 	repositoriesGroup.Use(middleware.AuthMiddleware(jwtMaker))
 	repositoriesGroup.Get("/:id/pipelines", pipelineHandler.GetRepositoryPipelines)
+	repositoriesGroup.Get("/:id/jobs", pipelineHandler.GetRepositoryJobs)
+	repositoriesGroup.Post("/:id/jobs", pipelineHandler.SaveRepositoryJobs)
 }

@@ -6,6 +6,8 @@ import (
 	"Frank2006x/Pipe/internal/util"
 	"context"
 	"errors"
+	"fmt"
+	"log"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
@@ -68,6 +70,16 @@ func (s *PipelineService) CreatePipeline(ctx context.Context, input *CreatePipel
 		return nil, ErrInvalidEventType
 	}
 
+	templates, err := qtx.ListRepositoryJobTemplatesInternal(ctx, input.RepositoryID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(templates) == 0 {
+		log.Printf("[INFO] No jobs configured for repository %d, skipping pipeline execution", input.RepositoryID)
+		return nil, nil
+	}
+
 	pipeline, err := qtx.CreatePipeline(ctx, sqlc.CreatePipelineParams{
 		RepositoryID:     input.RepositoryID,
 		GithubDeliveryID: util.TextOrNull(input.DeliveryID),
@@ -81,9 +93,20 @@ func (s *PipelineService) CreatePipeline(ctx context.Context, input *CreatePipel
 		return nil, err
 	}
 
-	err = s.createDefaultJobs(ctx, qtx, pipeline.ID)
-	if err != nil {
-		return nil, err
+	for _, tmpl := range templates {
+		_, err := qtx.CreateJob(ctx, sqlc.CreateJobParams{
+			PipelineID:       pipeline.ID,
+			TemplateID:       pgtype.Int8{Int64: tmpl.ID, Valid: true},
+			Status:           sqlc.JobStatusPending,
+			Name:             tmpl.Name,
+			OrderIndex:       tmpl.OrderIndex,
+			Image:            tmpl.Image,
+			WorkingDirectory: tmpl.WorkingDirectory,
+			Commands:         tmpl.Commands,
+		})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -92,6 +115,72 @@ func (s *PipelineService) CreatePipeline(ctx context.Context, input *CreatePipel
 
 	s.queue.PublishPipeline(ctx, pipeline.ID)
 	return &pipeline, nil
+}
+
+type JobTemplateInput struct {
+	Name             string   `json:"name"`
+	OrderIndex       int32    `json:"order_index"`
+	Image            string   `json:"image"`
+	WorkingDirectory string   `json:"working_directory"`
+	Commands         []string `json:"commands"`
+}
+
+func (s *PipelineService) ListRepositoryJobTemplates(ctx context.Context, userID, repositoryID int64) ([]sqlc.RepositoryJobTemplate, error) {
+	return s.queries.ListRepositoryJobTemplates(ctx, sqlc.ListRepositoryJobTemplatesParams{
+		RepositoryID: repositoryID,
+		UserID:       userID,
+	})
+}
+
+func (s *PipelineService) SaveRepositoryJobTemplates(ctx context.Context, userID, repositoryID int64, inputs []JobTemplateInput) ([]sqlc.RepositoryJobTemplate, error) {
+	_, err := s.queries.GetRepositoryById(ctx, sqlc.GetRepositoryByIdParams{
+		ID:     repositoryID,
+		UserID: userID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("repository not found or access denied: %w", err)
+	}
+
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	qtx := s.queries.WithTx(tx)
+
+	if err := qtx.DeleteRepositoryJobTemplatesByRepo(ctx, repositoryID); err != nil {
+		return nil, err
+	}
+
+	var createdTemplates []sqlc.RepositoryJobTemplate
+	for idx, input := range inputs {
+		orderIdx := int32(idx)
+
+		workDir := input.WorkingDirectory
+		if workDir == "" {
+			workDir = "/workspace"
+		}
+
+		tmpl, err := qtx.CreateRepositoryJobTemplate(ctx, sqlc.CreateRepositoryJobTemplateParams{
+			RepositoryID:     repositoryID,
+			Name:             input.Name,
+			OrderIndex:       orderIdx,
+			Image:            input.Image,
+			WorkingDirectory: workDir,
+			Commands:         input.Commands,
+		})
+		if err != nil {
+			return nil, err
+		}
+		createdTemplates = append(createdTemplates, tmpl)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+
+	return createdTemplates, nil
 }
 
 func (s *PipelineService) GetPipeline(ctx context.Context, userId int64, id int64) (*sqlc.Pipeline, error) {
