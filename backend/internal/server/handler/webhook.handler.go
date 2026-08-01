@@ -21,6 +21,7 @@ func NewWebhookHandler(webhookService *service.WebhookService, pipelineService *
 }
 
 type GitHubWebhookPayload struct {
+	Action     string `json:"action"`
 	Ref        string `json:"ref"`
 	After      string `json:"after"`
 	HeadCommit struct {
@@ -29,9 +30,22 @@ type GitHubWebhookPayload struct {
 	Pusher struct {
 		Name string `json:"name"`
 	} `json:"pusher"`
+	Sender struct {
+		Login string `json:"login"`
+	} `json:"sender"`
 	Repository struct {
 		FullName string `json:"full_name"`
 	} `json:"repository"`
+	PullRequest struct {
+		Title string `json:"title"`
+		Head  struct {
+			Ref string `json:"ref"`
+			Sha string `json:"sha"`
+		} `json:"head"`
+		User struct {
+			Login string `json:"login"`
+		} `json:"user"`
+	} `json:"pull_request"`
 }
 
 func (h *WebhookHandler) GitHubWebhook(c fiber.Ctx) error {
@@ -62,14 +76,39 @@ func (h *WebhookHandler) GitHubWebhook(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "Invalid signature")
 	}
 
+	var commitSHA string
+	var commitMessage string
+	var branch string
+	var triggerUsername string
+
+	if event == "pull_request" {
+		if payload.Action != "opened" && payload.Action != "synchronize" && payload.Action != "reopened" {
+			log.Infof("Skipping pull_request webhook for non-code action: %s", payload.Action)
+			return c.SendStatus(fiber.StatusOK)
+		}
+		commitSHA = payload.PullRequest.Head.Sha
+		commitMessage = payload.PullRequest.Title
+		branch = payload.PullRequest.Head.Ref
+		triggerUsername = payload.PullRequest.User.Login
+	} else {
+		commitSHA = payload.After
+		commitMessage = payload.HeadCommit.Message
+		branch = payload.Ref
+		triggerUsername = payload.Pusher.Name
+	}
+
+	if triggerUsername == "" {
+		triggerUsername = payload.Sender.Login
+	}
+
 	_, err = h.pipelineService.CreatePipeline(c.Context(), &service.CreatePipelineInput{
 		RepositoryID:    repo.ID,
 		DeliveryID:      delivery,
-		CommitSHA:       payload.After,
-		CommitMessage:   payload.HeadCommit.Message,
-		Branch:          payload.Ref,
+		CommitSHA:       commitSHA,
+		CommitMessage:   commitMessage,
+		Branch:          branch,
 		EventType:       sqlc.GithubEvent(event),
-		TriggerUsername: payload.Pusher.Name,
+		TriggerUsername: triggerUsername,
 	})
 	if err != nil {
 		log.Errorf("Error creating pipeline: %v", err)
