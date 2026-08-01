@@ -43,11 +43,12 @@ interface JobConfigDialogProps {
 }
 
 const PRESET_IMAGES = [
-  { label: "Go 1.24 Alpine", value: "golang:1.24-alpine" },
-  { label: "Node.js 20 Alpine", value: "node:20-alpine" },
-  { label: "Python 3.11 Alpine", value: "python:3.11-alpine" },
-  { label: "Rust 1.75 Alpine", value: "rust:1.75-alpine" },
-  { label: "Ubuntu 22.04 LTS", value: "ubuntu:22.04" },
+  { label: "Go", value: "golang:1.24-alpine" },
+  { label: "Node.js", value: "node:20-alpine" },
+  { label: "Python", value: "python:3.11-alpine" },
+  { label: "Rust", value: "rust:1.75-alpine" },
+  { label: "Java / Maven", value: "maven:3.9-eclipse-temurin" },
+  { label: "Ubuntu", value: "ubuntu:22.04" },
 ];
 
 const DEFAULT_MOCK_JOBS: CustomJobConfig[] = [
@@ -409,16 +410,16 @@ export default function JobConfigDialog({
                     >
                       {PRESET_IMAGES.map((preset) => (
                         <option key={preset.value} value={preset.value}>
-                          {preset.label} ({preset.value})
+                          {preset.label}
                         </option>
                       ))}
-                      <option value="custom">Custom Image...</option>
+                      <option value="custom">Custom...</option>
                     </select>
 
                     <Input
                       value={activeJob.image}
                       onChange={(e) => updateActiveJob({ image: e.target.value })}
-                      placeholder="e.g. golang:1.24-alpine"
+                      placeholder="Enter docker image tag (e.g. node:20-alpine)"
                       className="h-9 text-xs font-mono flex-1"
                     />
                   </div>
