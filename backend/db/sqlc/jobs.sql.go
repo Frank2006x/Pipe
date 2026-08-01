@@ -14,6 +14,7 @@ import (
 const createJob = `-- name: CreateJob :one
 INSERT INTO jobs (
     pipeline_id,
+    template_id,
     status,
     name,
     order_index,
@@ -22,24 +23,26 @@ INSERT INTO jobs (
     commands
 )
 VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, $7, $8
 )
-RETURNING id, pipeline_id, name, status, started_at, finished_at, order_index, created_at, updated_at, image, working_directory, commands, logs, exit_code
+RETURNING id, pipeline_id, name, status, started_at, finished_at, order_index, created_at, updated_at, image, working_directory, commands, logs, exit_code, template_id
 `
 
 type CreateJobParams struct {
-	PipelineID       int64     `json:"pipeline_id"`
-	Status           JobStatus `json:"status"`
-	Name             string    `json:"name"`
-	OrderIndex       int32     `json:"order_index"`
-	Image            string    `json:"image"`
-	WorkingDirectory string    `json:"working_directory"`
-	Commands         []string  `json:"commands"`
+	PipelineID       int64       `json:"pipeline_id"`
+	TemplateID       pgtype.Int8 `json:"template_id"`
+	Status           JobStatus   `json:"status"`
+	Name             string      `json:"name"`
+	OrderIndex       int32       `json:"order_index"`
+	Image            string      `json:"image"`
+	WorkingDirectory string      `json:"working_directory"`
+	Commands         []string    `json:"commands"`
 }
 
 func (q *Queries) CreateJob(ctx context.Context, arg CreateJobParams) (Job, error) {
 	row := q.db.QueryRow(ctx, createJob,
 		arg.PipelineID,
+		arg.TemplateID,
 		arg.Status,
 		arg.Name,
 		arg.OrderIndex,
@@ -63,12 +66,13 @@ func (q *Queries) CreateJob(ctx context.Context, arg CreateJobParams) (Job, erro
 		&i.Commands,
 		&i.Logs,
 		&i.ExitCode,
+		&i.TemplateID,
 	)
 	return i, err
 }
 
 const listJobsByPipeline = `-- name: ListJobsByPipeline :many
-SELECT j.id, j.pipeline_id, j.name, j.status, j.started_at, j.finished_at, j.order_index, j.created_at, j.updated_at, j.image, j.working_directory, j.commands, j.logs, j.exit_code FROM jobs j
+SELECT j.id, j.pipeline_id, j.name, j.status, j.started_at, j.finished_at, j.order_index, j.created_at, j.updated_at, j.image, j.working_directory, j.commands, j.logs, j.exit_code, j.template_id FROM jobs j
 JOIN pipelines p ON j.pipeline_id = p.id
 JOIN repositories r ON p.repository_id = r.id
 WHERE j.pipeline_id = $1 AND r.user_id = $2
@@ -104,6 +108,7 @@ func (q *Queries) ListJobsByPipeline(ctx context.Context, arg ListJobsByPipeline
 			&i.Commands,
 			&i.Logs,
 			&i.ExitCode,
+			&i.TemplateID,
 		); err != nil {
 			return nil, err
 		}
@@ -116,7 +121,7 @@ func (q *Queries) ListJobsByPipeline(ctx context.Context, arg ListJobsByPipeline
 }
 
 const listJobsByPipelineInternal = `-- name: ListJobsByPipelineInternal :many
-SELECT id, pipeline_id, name, status, started_at, finished_at, order_index, created_at, updated_at, image, working_directory, commands, logs, exit_code FROM jobs
+SELECT id, pipeline_id, name, status, started_at, finished_at, order_index, created_at, updated_at, image, working_directory, commands, logs, exit_code, template_id FROM jobs
 WHERE pipeline_id = $1
 ORDER BY order_index ASC
 `
@@ -145,6 +150,7 @@ func (q *Queries) ListJobsByPipelineInternal(ctx context.Context, pipelineID int
 			&i.Commands,
 			&i.Logs,
 			&i.ExitCode,
+			&i.TemplateID,
 		); err != nil {
 			return nil, err
 		}
@@ -165,7 +171,7 @@ SET
     finished_at = COALESCE($4, finished_at),
     updated_at = NOW()
 WHERE id = $5
-RETURNING id, pipeline_id, name, status, started_at, finished_at, order_index, created_at, updated_at, image, working_directory, commands, logs, exit_code
+RETURNING id, pipeline_id, name, status, started_at, finished_at, order_index, created_at, updated_at, image, working_directory, commands, logs, exit_code, template_id
 `
 
 type UpdateJobResultParams struct {
@@ -200,6 +206,7 @@ func (q *Queries) UpdateJobResult(ctx context.Context, arg UpdateJobResultParams
 		&i.Commands,
 		&i.Logs,
 		&i.ExitCode,
+		&i.TemplateID,
 	)
 	return i, err
 }
@@ -212,7 +219,7 @@ SET
     finished_at = COALESCE($3, finished_at),
     updated_at = NOW()
 WHERE id = $4
-RETURNING id, pipeline_id, name, status, started_at, finished_at, order_index, created_at, updated_at, image, working_directory, commands, logs, exit_code
+RETURNING id, pipeline_id, name, status, started_at, finished_at, order_index, created_at, updated_at, image, working_directory, commands, logs, exit_code, template_id
 `
 
 type UpdateJobStatusParams struct {
@@ -245,6 +252,7 @@ func (q *Queries) UpdateJobStatus(ctx context.Context, arg UpdateJobStatusParams
 		&i.Commands,
 		&i.Logs,
 		&i.ExitCode,
+		&i.TemplateID,
 	)
 	return i, err
 }

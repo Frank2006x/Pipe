@@ -168,6 +168,7 @@ type Job struct {
 	Commands         []string           `json:"commands"`
 	Logs             string             `json:"logs"`
 	ExitCode         pgtype.Int4        `json:"exit_code"`
+	TemplateID       pgtype.Int8        `json:"template_id"`
 }
 
 type Log struct {
@@ -211,6 +212,18 @@ type Repository struct {
 	Description   pgtype.Text        `json:"description"`
 	CloneUrl      string             `json:"clone_url"`
 	WebhookSecret pgtype.Text        `json:"webhook_secret"`
+}
+
+type RepositoryJobTemplate struct {
+	ID               int64              `json:"id"`
+	RepositoryID     int64              `json:"repository_id"`
+	Name             string             `json:"name"`
+	OrderIndex       int32              `json:"order_index"`
+	Image            string             `json:"image"`
+	WorkingDirectory string             `json:"working_directory"`
+	Commands         []string           `json:"commands"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
 }
 
 type User struct {
