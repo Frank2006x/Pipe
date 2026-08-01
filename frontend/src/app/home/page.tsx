@@ -14,7 +14,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { LogOut, Mail, Shield, User, GitBranch, Sun, Moon, Plus, Loader2, Globe, Lock, Check, AlertCircle, ExternalLink } from "lucide-react";
+import { LogOut, Mail, Shield, User, GitBranch, Sun, Moon, Plus, Loader2, Globe, Lock, Check, AlertCircle, ExternalLink, Sliders } from "lucide-react";
+import JobConfigDialog from "@/components/JobConfigDialog";
 import {
   CommandDialog,
   CommandInput,
@@ -87,6 +88,10 @@ export default function HomePage() {
   const [loadingGithubRepos, setLoadingGithubRepos] = useState(false);
   const [githubReposError, setGithubReposError] = useState<string | null>(null);
   const [importingRepoId, setImportingRepoId] = useState<number | null>(null);
+
+  // Job Configuration Modal state
+  const [selectedConfigRepo, setSelectedConfigRepo] = useState<ImportedRepository | null>(null);
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
 
   const backendBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -328,23 +333,38 @@ export default function HomePage() {
                           <span>Default branch: <span className="font-mono text-foreground font-medium">{repo.default_branch}</span></span>
                         </div>
                       </CardContent>
-                      <CardFooter className="pt-0 pb-4 flex justify-between gap-2">
-                        <a 
-                          href={repo.html_url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+                      <CardFooter className="pt-0 pb-4 flex items-center justify-between gap-2 border-t border-border/40 pt-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs font-semibold text-primary border-primary/20 hover:bg-primary/10 transition-all flex items-center gap-1.5"
+                          onClick={() => {
+                            setSelectedConfigRepo(repo);
+                            setIsConfigOpen(true);
+                          }}
                         >
-                          View GitHub <ExternalLink className="h-3.5 w-3.5" />
-                        </a>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 text-xs hover:bg-destructive/10 hover:text-destructive text-muted-foreground transition-all"
-                          onClick={() => handleDeleteRepo(repo.id)}
-                        >
-                          Remove
+                          <Sliders className="h-3.5 w-3.5" />
+                          Configure Jobs
                         </Button>
+
+                        <div className="flex items-center gap-2">
+                          <a 
+                            href={repo.html_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 text-xs hover:bg-destructive/10 hover:text-destructive text-muted-foreground transition-all"
+                            onClick={() => handleDeleteRepo(repo.id)}
+                          >
+                            Remove
+                          </Button>
+                        </div>
                       </CardFooter>
                     </Card>
                   ))}
@@ -495,6 +515,16 @@ export default function HomePage() {
           )}
         </CommandList>
       </CommandDialog>
+
+      {/* Custom Job Configuration Modal */}
+      {selectedConfigRepo && (
+        <JobConfigDialog
+          open={isConfigOpen}
+          onOpenChange={setIsConfigOpen}
+          repoName={selectedConfigRepo.name}
+          repoFullName={selectedConfigRepo.full_name}
+        />
+      )}
     </div>
   );
 }
