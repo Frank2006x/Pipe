@@ -23,7 +23,6 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
-    restart: unless-stopped
 
 volumes:
   postgres_data:
