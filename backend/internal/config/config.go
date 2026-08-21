@@ -10,6 +10,7 @@ type Config struct {
 	JWT_SECRET           string `mapstructure:"JWT_SECRET"`
 	WEBHOOK_BASE_URL     string `mapstructure:"WEBHOOK_BASE_URL"`
 	RABBITMQ_URL         string `mapstructure:"RABBITMQ_URL"`
+	REDIS_URL            string `mapstructure:"REDIS_URL"`
 }
 
 func LoadConfig(path string) (Config, error) {

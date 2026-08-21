@@ -3,6 +3,7 @@ package main
 import (
 	"Frank2006x/Pipe/db/sqlc"
 	"Frank2006x/Pipe/internal/auth"
+	"Frank2006x/Pipe/internal/cache"
 	"Frank2006x/Pipe/internal/config"
 	"Frank2006x/Pipe/internal/db"
 	"Frank2006x/Pipe/internal/executor"
@@ -46,6 +47,14 @@ func main() {
 	}
 	defer rabbitmq.Close()
 
+	redisCache, err := cache.New(cfg.REDIS_URL)
+	if err != nil {
+		log.Printf("[WARNING] Failed to connect to Redis, continuing without cache: %v", err)
+	}
+	if redisCache != nil {
+		defer redisCache.Close()
+	}
+
 	queries := sqlc.New(pool)
 	githubClient := github.NewClient(cfg)
 	jwtMaker := auth.NewJwtMaker(cfg.JWT_SECRET)
@@ -79,13 +88,14 @@ func main() {
 	app.Use(middleware.RequestIDMiddleware())
 
 	router.RepositoryRouter(app, queries, githubService, jwtMaker, pool)
-	router.AuthRouter(app, queries, githubClient, jwtMaker)
+	router.AuthRouter(app, queries, githubClient, jwtMaker, redisCache)
 	router.GithubRouter(app, githubService, jwtMaker)
 	router.WebhookRouter(app, queries, pipelineService)
 	router.PipelineRouter(app, pipelineService, jwtMaker)
 	app.Get("/ping", func(c fiber.Ctx) error {
 		return c.SendStatus(http.StatusOK)
 	})
+
 
 	shutdownChannel := make(chan os.Signal, 1)
 	signal.Notify(shutdownChannel, syscall.SIGTERM, syscall.SIGINT)

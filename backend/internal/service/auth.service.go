@@ -3,9 +3,12 @@ package service
 import (
 	"Frank2006x/Pipe/db/sqlc"
 	"Frank2006x/Pipe/internal/auth"
+	"Frank2006x/Pipe/internal/cache"
 	"Frank2006x/Pipe/internal/github"
 	"context"
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/gofiber/fiber/v3/log"
 	"github.com/jackc/pgx/v5"
@@ -17,18 +20,26 @@ var (
 	ErrInvalidToken = errors.New("invalid token")
 )
 
+const userCacheTTL = 10 * time.Minute
+
 type AuthService struct {
 	githubClient *github.Client
 	jwtMaker     *auth.JwtMaker
 	queries      *sqlc.Queries
+	cache        *cache.Cache
 }
 
-func NewAuthService(githubClient *github.Client, jwtMaker *auth.JwtMaker, queries *sqlc.Queries) *AuthService {
+func NewAuthService(githubClient *github.Client, jwtMaker *auth.JwtMaker, queries *sqlc.Queries, cache *cache.Cache) *AuthService {
 	return &AuthService{
 		githubClient: githubClient,
 		jwtMaker:     jwtMaker,
 		queries:      queries,
+		cache:        cache,
 	}
+}
+
+func userCacheKey(userID int64) string {
+	return fmt.Sprintf("user:%d", userID)
 }
 
 func (s *AuthService) upsertUser(
@@ -52,6 +63,9 @@ func (s *AuthService) upsertUser(
 		if err != nil {
 			return sqlc.User{}, err
 		}
+
+		// Invalidate stale cached user after profile update.
+		_ = s.cache.Del(ctx, userCacheKey(updatedUser.ID))
 
 		return updatedUser, nil
 	}
@@ -137,11 +151,22 @@ func (s *AuthService) Callback(ctx context.Context, code string) (string, error)
 }
 
 func (s *AuthService) GetUserInfo(ctx context.Context, userID int64) (sqlc.User, error) {
-	user, err := s.queries.GetUserByID(ctx, userID)
+	var user sqlc.User
 
+	// Cache-aside: try cache first.
+	if err := s.cache.Get(ctx, userCacheKey(userID), &user); err == nil {
+		return user, nil
+	}
+
+	// Cache miss (or Redis error) — fall back to DB.
+	user, err := s.queries.GetUserByID(ctx, userID)
 	if err != nil {
 		return sqlc.User{}, err
 	}
+
+	// Populate cache for next request; ignore set errors.
+	_ = s.cache.Set(ctx, userCacheKey(userID), user, userCacheTTL)
+
 	return user, nil
 }
 
